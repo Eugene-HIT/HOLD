@@ -41,11 +41,11 @@ export function RecordEditor({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#382a3b]/40 p-4 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#312f55]/40 p-4 backdrop-blur-sm">
       <div className="panel-card w-full max-w-3xl rounded-[32px] p-6 md:p-8">
         <div className="mb-5 flex items-center justify-between gap-4">
           <div>
-            <p className="text-xs font-mono uppercase tracking-[0.24em] text-[#8b6e84]">
+            <p className="text-xs font-mono uppercase tracking-[0.24em] text-[#6669b0]">
               record editor
             </p>
             <h3 className="mt-2 text-2xl font-semibold text-[#48374d]">
@@ -55,7 +55,7 @@ export function RecordEditor({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-full border border-[var(--line)] bg-white/80 px-4 py-2 text-sm text-[#5f4a61]"
+            className="rounded-full border border-[var(--line)] bg-white/80 px-4 py-2 text-sm text-[#4f4d82]"
           >
             关闭
           </button>
@@ -63,7 +63,7 @@ export function RecordEditor({
 
         <div className="grid gap-4 md:grid-cols-2">
           <label className="space-y-2 md:col-span-2">
-            <span className="text-sm font-medium text-[#5f4a61]">标题</span>
+            <span className="text-sm font-medium text-[#4f4d82]">标题</span>
             <input
               value={draft.title}
               onChange={(event) =>
@@ -71,12 +71,12 @@ export function RecordEditor({
                   current ? { ...current, title: event.target.value } : current,
                 )
               }
-              className="w-full rounded-2xl border border-[var(--line)] bg-white/80 px-4 py-3 outline-none transition focus:border-[#ff8fb1]"
+              className="w-full rounded-2xl border border-[var(--line)] bg-white/80 px-4 py-3 outline-none transition focus:border-[var(--accent)]"
             />
           </label>
 
           <label className="space-y-2">
-            <span className="text-sm font-medium text-[#5f4a61]">开始时间</span>
+            <span className="text-sm font-medium text-[#4f4d82]">开始时间</span>
             <input
               type="datetime-local"
               value={toInputValue(draft.startAt)}
@@ -90,12 +90,12 @@ export function RecordEditor({
                     : current,
                 )
               }
-              className="w-full rounded-2xl border border-[var(--line)] bg-white/80 px-4 py-3 outline-none transition focus:border-[#ff8fb1]"
+              className="w-full rounded-2xl border border-[var(--line)] bg-white/80 px-4 py-3 outline-none transition focus:border-[var(--accent)]"
             />
           </label>
 
           <label className="space-y-2">
-            <span className="text-sm font-medium text-[#5f4a61]">结束时间</span>
+            <span className="text-sm font-medium text-[#4f4d82]">结束时间</span>
             <input
               type="datetime-local"
               value={toInputValue(draft.endAt)}
@@ -109,12 +109,12 @@ export function RecordEditor({
                     : current,
                 )
               }
-              className="w-full rounded-2xl border border-[var(--line)] bg-white/80 px-4 py-3 outline-none transition focus:border-[#ff8fb1]"
+              className="w-full rounded-2xl border border-[var(--line)] bg-white/80 px-4 py-3 outline-none transition focus:border-[var(--accent)]"
             />
           </label>
 
           <label className="space-y-2 md:col-span-2">
-            <span className="text-sm font-medium text-[#5f4a61]">记录说明</span>
+            <span className="text-sm font-medium text-[#4f4d82]">记录说明</span>
             <textarea
               value={draft.details}
               onChange={(event) =>
@@ -123,12 +123,12 @@ export function RecordEditor({
                 )
               }
               rows={6}
-              className="w-full rounded-2xl border border-[var(--line)] bg-white/80 px-4 py-3 outline-none transition focus:border-[#ff8fb1]"
+              className="w-full rounded-2xl border border-[var(--line)] bg-white/80 px-4 py-3 outline-none transition focus:border-[var(--accent)]"
             />
           </label>
 
           <label className="space-y-2 md:col-span-2">
-            <span className="text-sm font-medium text-[#5f4a61]">新增图片</span>
+            <span className="text-sm font-medium text-[#4f4d82]">新增图片</span>
             <input
               type="file"
               multiple
@@ -136,12 +136,12 @@ export function RecordEditor({
               onChange={(event) =>
                 setPendingFiles(Array.from(event.target.files ?? []))
               }
-              className="w-full rounded-2xl border border-[var(--line)] bg-white/80 px-4 py-3 outline-none transition file:mr-4 file:rounded-full file:border-0 file:bg-[#ffe4ee] file:px-4 file:py-2 file:text-sm file:font-medium file:text-[#7e5369]"
+              className="w-full rounded-2xl border border-[var(--line)] bg-white/80 px-4 py-3 outline-none transition file:mr-4 file:rounded-full file:border-0 file:bg-[#e6e3ff] file:px-4 file:py-2 file:text-sm file:font-medium file:text-[#575ca5]"
             />
           </label>
 
           <div className="space-y-2 md:col-span-2">
-            <span className="text-sm font-medium text-[#5f4a61]">当前图片</span>
+            <span className="text-sm font-medium text-[#4f4d82]">当前图片</span>
             <div className="flex flex-wrap gap-2">
               {draft.imageUrls.length ? (
                 draft.imageUrls.map((imageUrl) => (
@@ -170,7 +170,7 @@ export function RecordEditor({
               )}
             </div>
             {pendingFiles.length ? (
-              <p className="text-xs text-[#8b6e84]">
+              <p className="text-xs text-[#6669b0]">
                 待上传 {pendingFiles.length} 张图片。
               </p>
             ) : null}
@@ -181,7 +181,7 @@ export function RecordEditor({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-full border border-[var(--line)] bg-white/80 px-5 py-2.5 text-sm text-[#5f4a61]"
+            className="rounded-full border border-[var(--line)] bg-white/80 px-5 py-2.5 text-sm text-[#4f4d82]"
           >
             取消
           </button>
@@ -189,7 +189,7 @@ export function RecordEditor({
             type="button"
             disabled={saving}
             onClick={() => onSubmit(draft, pendingFiles)}
-            className="rounded-full bg-[#3f2f43] px-5 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+            className="rounded-full bg-[var(--accent-strong)] px-5 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
           >
             {saving ? "保存中..." : "保存记录"}
           </button>

@@ -11,12 +11,12 @@
 import type { ProgressRecord } from "@/lib/types";
 
 export const COLOR_PRESETS = [
-  "#ff8fb1",
-  "#7fc8f8",
-  "#8bd3a8",
-  "#f7b267",
-  "#b8a1ff",
-  "#ff9770",
+  "#8d7dff",
+  "#6ea8ff",
+  "#7bd3ff",
+  "#a38bff",
+  "#76b6ff",
+  "#c39cff",
 ];
 
 export const SAMPLE_RECORDS: ProgressRecord[] = [
@@ -28,11 +28,11 @@ export const SAMPLE_RECORDS: ProgressRecord[] = [
     endAt: "2026-06-08T03:20:00+08:00",
     ownerId: "preview-eugene",
     ownerName: "Eugene",
-    ownerColor: "#ff8fb1",
+    ownerColor: "#8d7dff",
     imageUrls: [
-      "https://placehold.co/720x480/f8d9e4/6b4d70?text=IMU+Notebook",
-      "https://placehold.co/720x480/d7f1e3/497d68?text=Respiration+Peaks",
-      "https://placehold.co/720x480/dde8ff/47628a?text=Signal+Review",
+      "https://placehold.co/720x480/e5e0ff/524f8d?text=IMU+Notebook",
+      "https://placehold.co/720x480/ddecff/44689a?text=Respiration+Peaks",
+      "https://placehold.co/720x480/e9e7ff/4b4fa3?text=Signal+Review",
     ],
     createdAt: "2026-06-08T03:20:00+08:00",
     updatedAt: "2026-06-08T03:20:00+08:00",

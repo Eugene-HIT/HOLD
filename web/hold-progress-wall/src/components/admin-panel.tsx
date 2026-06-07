@@ -33,19 +33,19 @@ export function AdminPanel({
     <section className="panel-card rounded-[28px] p-5 md:p-6">
       <div className="mb-5 flex items-center justify-between gap-4">
         <div>
-          <p className="text-xs font-mono uppercase tracking-[0.24em] text-[#8b6e84]">
+          <p className="text-xs font-mono uppercase tracking-[0.24em] text-[#6a6bb1]">
             admin
           </p>
           <h3 className="mt-2 text-xl font-semibold text-[#4a394f]">成员后台</h3>
         </div>
-        <div className="rounded-full bg-[#fff0f5] px-3 py-1 text-xs text-[#8b4e68]">
+        <div className="rounded-full bg-[#eef0ff] px-3 py-1 text-xs text-[#5960a6]">
           仅管理员可见
         </div>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[1.2fr_1fr]">
         <div className="rounded-[24px] bg-white/70 p-4">
-          <h4 className="mb-3 text-sm font-semibold text-[#5f4a61]">添加允许登录的邮箱</h4>
+          <h4 className="mb-3 text-sm font-semibold text-[#4f4d82]">添加允许登录的邮箱</h4>
           <div className="grid gap-3 md:grid-cols-2">
             <input
               value={inviteDraft.email}
@@ -56,7 +56,7 @@ export function AdminPanel({
                 })
               }
               placeholder="成员邮箱"
-              className="rounded-2xl border border-[var(--line)] bg-white/80 px-4 py-3 outline-none transition focus:border-[#ff8fb1]"
+              className="rounded-2xl border border-[var(--line)] bg-white/80 px-4 py-3 outline-none transition focus:border-[var(--accent)]"
             />
             <input
               value={inviteDraft.displayNameHint}
@@ -67,7 +67,7 @@ export function AdminPanel({
                 })
               }
               placeholder="默认昵称"
-              className="rounded-2xl border border-[var(--line)] bg-white/80 px-4 py-3 outline-none transition focus:border-[#ff8fb1]"
+              className="rounded-2xl border border-[var(--line)] bg-white/80 px-4 py-3 outline-none transition focus:border-[var(--accent)]"
             />
             <input
               type="color"
@@ -88,7 +88,7 @@ export function AdminPanel({
                   role: event.target.value as InviteEditorValue["role"],
                 })
               }
-              className="rounded-2xl border border-[var(--line)] bg-white/80 px-4 py-3 outline-none transition focus:border-[#ff8fb1]"
+              className="rounded-2xl border border-[var(--line)] bg-white/80 px-4 py-3 outline-none transition focus:border-[var(--accent)]"
             >
               <option value="member">member</option>
               <option value="admin">admin</option>
@@ -99,14 +99,14 @@ export function AdminPanel({
             type="button"
             disabled={saving}
             onClick={onAddInvite}
-            className="mt-4 rounded-full bg-[#3f2f43] px-5 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+            className="mt-4 rounded-full bg-[var(--accent-strong)] px-5 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
           >
             {saving ? "保存中..." : "加入白名单"}
           </button>
         </div>
 
         <div className="rounded-[24px] bg-white/70 p-4">
-          <h4 className="mb-3 text-sm font-semibold text-[#5f4a61]">当前成员</h4>
+          <h4 className="mb-3 text-sm font-semibold text-[#4f4d82]">当前成员</h4>
           <div className="space-y-3">
             {profiles.length ? (
               profiles.map((profile) => (
@@ -128,7 +128,7 @@ export function AdminPanel({
                       {profile.email}
                     </p>
                   </div>
-                  <span className="rounded-full bg-[#fff1f7] px-3 py-1 text-xs text-[#8b4e68]">
+                  <span className="rounded-full bg-[#eef0ff] px-3 py-1 text-xs text-[#5960a6]">
                     {profile.role}
                   </span>
                 </div>
@@ -141,7 +141,7 @@ export function AdminPanel({
       </div>
 
       <div className="mt-5 rounded-[24px] bg-white/70 p-4">
-        <h4 className="mb-3 text-sm font-semibold text-[#5f4a61]">白名单邮箱</h4>
+        <h4 className="mb-3 text-sm font-semibold text-[#4f4d82]">白名单邮箱</h4>
         <div className="space-y-3">
           {invites.length ? (
             invites.map((invite) => (
@@ -162,13 +162,13 @@ export function AdminPanel({
                   <p className="mt-1 text-xs text-[var(--ink-soft)]">{invite.email}</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="rounded-full bg-[#eef8f2] px-3 py-1 text-xs text-[#3f7b5f]">
+                  <span className="rounded-full bg-[#eef0ff] px-3 py-1 text-xs text-[#5960a6]">
                     {invite.role}
                   </span>
                   <button
                     type="button"
                     onClick={() => onRemoveInvite(invite.id)}
-                    className="rounded-full border border-[var(--line)] bg-white px-3 py-1 text-xs text-[#6d566f]"
+                    className="rounded-full border border-[var(--line)] bg-white px-3 py-1 text-xs text-[#5c5f98]"
                   >
                     删除
                   </button>

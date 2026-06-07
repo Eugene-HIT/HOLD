@@ -11,6 +11,8 @@
 export const APP_CONFIG = {
   siteName: "HOLD 进度墙",
   subtitle: "记录谁做了什么，而不是堆一套复杂项目管理流程。",
+  authEmailCooldownMs: 75_000,
+  authOtpProjectHourlyLimit: 30,
   adminEmail:
     process.env.NEXT_PUBLIC_ADMIN_EMAIL?.toLowerCase() ??
     "15049922303@163.com",

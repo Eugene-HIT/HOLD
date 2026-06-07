@@ -64,12 +64,12 @@ export function RecordsTimeline({
     <div className="panel-card rounded-[32px] p-4 md:p-6">
       <div className="mb-4 flex items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-semibold text-[#4b3a50]">开发记录时间轴</h2>
+          <h2 className="text-xl font-semibold text-[#45497d]">开发记录时间轴</h2>
           <p className="mt-1 text-sm text-[var(--ink-soft)]">
             点击任意色块可查看详情。颜色由成员个人名片决定。
           </p>
         </div>
-        <div className="rounded-full bg-white/70 px-4 py-2 text-xs font-mono uppercase tracking-[0.2em] text-[#8d6f84]">
+        <div className="rounded-full bg-[#eef1ff] px-4 py-2 text-xs font-mono uppercase tracking-[0.2em] text-[#5f66ab]">
           live timeline
         </div>
       </div>
@@ -116,7 +116,7 @@ export function RecordsTimeline({
                     onClick={() => onSelect(record.id)}
                     className={`rounded-[20px] border px-4 py-3 text-left transition ${
                       selected
-                        ? "border-[#ff8fb1] bg-[#fff4f7]"
+                        ? "border-[var(--accent)] bg-[#f0efff]"
                         : "border-transparent bg-white/75 hover:border-[var(--line)]"
                     }`}
                   >
@@ -134,7 +134,7 @@ export function RecordsTimeline({
                       style={{
                         left: `${left}%`,
                         width: `${widthPercent}%`,
-                        background: `linear-gradient(135deg, ${record.ownerColor}, #6d526d)`,
+                        background: `linear-gradient(135deg, ${record.ownerColor}, #4d63b0)`,
                       }}
                     >
                       <span className="block font-semibold">{record.title}</span>

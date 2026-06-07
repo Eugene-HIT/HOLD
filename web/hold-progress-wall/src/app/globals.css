@@ -1,14 +1,17 @@
 @import "tailwindcss";
 
 :root {
-  --background: #fff9f4;
-  --foreground: #3f2f43;
-  --card: rgba(255, 255, 255, 0.82);
-  --line: rgba(107, 77, 117, 0.14);
-  --accent: #ff8fb1;
-  --accent-strong: #f76b96;
-  --mint: #95dfc0;
-  --ink-soft: #70586f;
+  --background: #f5f2ff;
+  --foreground: #322d58;
+  --card: rgba(255, 255, 255, 0.8);
+  --line: rgba(95, 100, 170, 0.16);
+  --accent: #8d7dff;
+  --accent-strong: #5f7cff;
+  --accent-soft: #dfdbff;
+  --notice-bg: #edf0ff;
+  --notice-text: #4f57a0;
+  --mint: #84d8ff;
+  --ink-soft: #67638f;
 }
 
 @theme inline {
@@ -29,9 +32,9 @@ html {
 body {
   min-height: 100vh;
   background:
-    radial-gradient(circle at top left, rgba(255, 192, 203, 0.35), transparent 28%),
-    radial-gradient(circle at top right, rgba(149, 223, 192, 0.28), transparent 24%),
-    linear-gradient(180deg, #fffaf7 0%, #fff4fb 100%);
+    radial-gradient(circle at top left, rgba(159, 140, 255, 0.35), transparent 30%),
+    radial-gradient(circle at top right, rgba(123, 211, 255, 0.28), transparent 26%),
+    linear-gradient(180deg, #f7f6ff 0%, #eef3ff 100%);
   color: var(--foreground);
   font-family: var(--font-body), sans-serif;
 }
@@ -52,12 +55,12 @@ select {
   background: var(--card);
   backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.7);
-  box-shadow: 0 18px 60px rgba(161, 123, 145, 0.16);
+  box-shadow: 0 18px 60px rgba(91, 108, 176, 0.16);
 }
 
 .pixel-chip {
   position: relative;
-  box-shadow: 4px 4px 0 rgba(111, 77, 112, 0.14);
+  box-shadow: 4px 4px 0 rgba(83, 92, 158, 0.16);
 }
 
 .pixel-chip::after {
@@ -74,9 +77,118 @@ select {
 
 .timeline-grid {
   background-image:
-    linear-gradient(to right, rgba(124, 92, 129, 0.08) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(124, 92, 129, 0.08) 1px, transparent 1px);
+    linear-gradient(to right, rgba(112, 119, 196, 0.08) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(112, 119, 196, 0.08) 1px, transparent 1px);
   background-size: 96px 100%, 100% 100%;
+}
+
+.pixel-scene {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  background:
+    radial-gradient(circle at top, rgba(255, 255, 255, 0.56), transparent 48%),
+    linear-gradient(180deg, rgba(224, 219, 255, 0.96) 0%, rgba(222, 236, 255, 0.92) 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.pixel-stage {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: center;
+  gap: 16px;
+}
+
+.pixel-sprite {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.pixel-sprite--1 {
+  animation: spriteHop 4.4s ease-in-out infinite;
+}
+
+.pixel-sprite--2 {
+  animation: spriteHop 4.8s ease-in-out infinite 0.45s;
+}
+
+.pixel-sprite--3 {
+  animation: spriteHop 4.2s ease-in-out infinite 0.8s;
+}
+
+.pixel-character-grid {
+  display: grid;
+  gap: 2px;
+  padding: 10px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.5);
+  box-shadow: 0 10px 24px rgba(81, 90, 161, 0.14);
+}
+
+.pixel-cell {
+  height: 10px;
+  width: 10px;
+  border-radius: 2px;
+}
+
+.pixel-shadow {
+  height: 8px;
+  width: 70px;
+  border-radius: 999px;
+  background: rgba(77, 85, 145, 0.14);
+  filter: blur(1px);
+}
+
+.pixel-star {
+  position: absolute;
+  height: 8px;
+  width: 8px;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 0 0 2px rgba(121, 146, 255, 0.15);
+  animation: twinkle 2.2s steps(2, end) infinite;
+}
+
+.pixel-star::before,
+.pixel-star::after {
+  content: "";
+  position: absolute;
+  background: inherit;
+}
+
+.pixel-star::before {
+  inset: -3px 2px;
+}
+
+.pixel-star::after {
+  inset: 2px -3px;
+}
+
+.pixel-star--1 {
+  left: 10%;
+  top: 18%;
+}
+
+.pixel-star--2 {
+  right: 12%;
+  top: 12%;
+  animation-delay: 0.5s;
+}
+
+.pixel-star--3 {
+  left: 28%;
+  top: 8%;
+  animation-delay: 0.9s;
+}
+
+.pixel-star--4 {
+  right: 30%;
+  top: 28%;
+  animation-delay: 1.2s;
 }
 
 .noise-overlay {
@@ -103,8 +215,46 @@ select {
   }
 }
 
+@keyframes spriteHop {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  25% {
+    transform: translateY(-3px);
+  }
+  50% {
+    transform: translateY(-7px);
+  }
+  75% {
+    transform: translateY(-2px);
+  }
+}
+
+@keyframes twinkle {
+  0%,
+  100% {
+    opacity: 0.5;
+    transform: scale(0.9);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+}
+
 @media (max-width: 768px) {
   .timeline-grid {
     background-size: 72px 100%, 100% 100%;
+  }
+
+  .pixel-character-grid {
+    gap: 1px;
+    padding: 8px;
+  }
+
+  .pixel-cell {
+    height: 8px;
+    width: 8px;
   }
 }

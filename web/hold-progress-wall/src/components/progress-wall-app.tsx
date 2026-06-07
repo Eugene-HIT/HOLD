@@ -15,6 +15,7 @@ import type { Session, SupabaseClient } from "@supabase/supabase-js";
 
 import { AdminPanel } from "@/components/admin-panel";
 import { AuthPanel } from "@/components/auth-panel";
+import { PixelPalsHero } from "@/components/pixel-pals-hero";
 import { RecordDetailPanel } from "@/components/record-detail-panel";
 import { RecordEditor } from "@/components/record-editor";
 import { RecordsTimeline } from "@/components/records-timeline";
@@ -74,7 +75,7 @@ function mapProfile(row: Record<string, unknown>): MemberProfile {
     id: String(row.id),
     email: String(row.email ?? ""),
     displayName: String(row.display_name ?? "未命名成员"),
-    colorHex: String(row.color_hex ?? "#ff8fb1"),
+    colorHex: String(row.color_hex ?? COLOR_PRESETS[0]),
     role: row.role === "admin" ? "admin" : "member",
     createdAt: row.created_at ? String(row.created_at) : undefined,
   };
@@ -85,7 +86,7 @@ function mapInvite(row: Record<string, unknown>): MemberInvite {
     id: String(row.id),
     email: String(row.email ?? ""),
     displayNameHint: String(row.display_name_hint ?? ""),
-    colorHint: String(row.color_hint ?? "#ff8fb1"),
+    colorHint: String(row.color_hint ?? COLOR_PRESETS[0]),
     role: row.role === "admin" ? "admin" : "member",
     enabled: Boolean(row.enabled),
     createdAt: row.created_at ? String(row.created_at) : undefined,
@@ -101,7 +102,7 @@ function mapRecord(row: Record<string, unknown>): ProgressRecord {
     endAt: String(row.end_at),
     ownerId: String(row.owner_id),
     ownerName: String(row.owner_name ?? "未知成员"),
-    ownerColor: String(row.owner_color ?? "#ff8fb1"),
+    ownerColor: String(row.owner_color ?? COLOR_PRESETS[0]),
     imageUrls: Array.isArray(row.image_urls)
       ? row.image_urls.map((item) => String(item))
       : [],
@@ -520,13 +521,15 @@ export function ProgressWallApp() {
     }
 
     if (authCooldownSeconds > 0) {
-      setNotice(`邮件刚发送过，请等待 ${authCooldownSeconds} 秒后再试。`);
+      setNotice(
+        `邮件刚发送过，请等待 ${authCooldownSeconds} 秒后再试。若还是提示 rate limit，通常说明项目的每小时 OTP 总量也被打满了。`,
+      );
       return;
     }
 
     startAuthSending(async () => {
       const startCooldown = () => {
-        const cooldownUntil = Date.now() + 60_000;
+        const cooldownUntil = Date.now() + APP_CONFIG.authEmailCooldownMs;
         setAuthCooldownNow(Date.now());
         setAuthCooldownUntil(cooldownUntil);
       };
@@ -542,7 +545,9 @@ export function ProgressWallApp() {
       if (error) {
         if (/rate limit/i.test(error.message)) {
           startCooldown();
-          setNotice("邮件发送过于频繁，已进入 60 秒冷却。一般不需要买服务，先等冷却结束再重试即可。");
+          setNotice(
+            `Supabase 邮件发送被限流了。官方默认同一邮箱至少间隔 60 秒，且同项目默认每小时 ${APP_CONFIG.authOtpProjectHourlyLimit} 次 OTP；当前页面已按 ${Math.ceil(APP_CONFIG.authEmailCooldownMs / 1000)} 秒冷却，请稍后再试。`,
+          );
           return;
         }
 
@@ -551,7 +556,9 @@ export function ProgressWallApp() {
       }
 
       startCooldown();
-      setNotice("登录邮件已发送，请去邮箱点开 Magic Link。首次登录前请先加入后台白名单。");
+      setNotice(
+        `登录邮件已发送，请去邮箱点开 Magic Link。Supabase 官方默认同一邮箱至少间隔 60 秒，当前页面会保守冷却 ${Math.ceil(APP_CONFIG.authEmailCooldownMs / 1000)} 秒。`,
+      );
     });
   }
 
@@ -748,9 +755,9 @@ export function ProgressWallApp() {
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-[1440px] flex-col gap-6 px-4 py-6 md:px-6 md:py-8">
       <header className="panel-card noise-overlay rounded-[32px] px-5 py-6 md:px-8 md:py-7">
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <div className="pixel-chip inline-flex rounded-2xl bg-[#fbe0ea] px-3 py-2 text-[11px] font-mono uppercase tracking-[0.22em] text-[#7b506b]">
+            <div className="pixel-chip inline-flex rounded-2xl bg-[var(--accent-soft)] px-3 py-2 text-[11px] font-mono uppercase tracking-[0.22em] text-[#51508d]">
               dev log wall
             </div>
             <h1 className="mt-4 text-4xl font-bold tracking-tight text-[#47364c] md:text-5xl">
@@ -761,32 +768,35 @@ export function ProgressWallApp() {
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
-            {me ? (
-              <>
-                <div className="flex items-center gap-2 rounded-full bg-white/70 px-4 py-2 text-sm text-[#58485d]">
-                  <span
-                    className="h-3 w-3 rounded-full"
-                    style={{ backgroundColor: me.colorHex }}
-                  />
-                  {me.displayName}
-                </div>
-                <button
-                  type="button"
-                  onClick={openCreateEditor}
-                  className="rounded-full bg-[#3f2f43] px-5 py-3 text-sm font-semibold text-white"
-                >
-                  新增记录
-                </button>
-                <button
-                  type="button"
-                  onClick={handleSignOut}
-                  className="rounded-full border border-[var(--line)] bg-white/75 px-5 py-3 text-sm text-[#5f4a61]"
-                >
-                  退出登录
-                </button>
-              </>
-            ) : null}
+          <div className="flex max-w-[520px] flex-col gap-4 lg:items-end">
+            <PixelPalsHero />
+            <div className="flex flex-wrap items-center gap-3">
+              {me ? (
+                <>
+                  <div className="flex items-center gap-2 rounded-full bg-white/70 px-4 py-2 text-sm text-[#585792]">
+                    <span
+                      className="h-3 w-3 rounded-full"
+                      style={{ backgroundColor: me.colorHex }}
+                    />
+                    {me.displayName}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={openCreateEditor}
+                    className="rounded-full bg-[var(--accent-strong)] px-5 py-3 text-sm font-semibold text-white"
+                  >
+                    新增记录
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSignOut}
+                    className="rounded-full border border-[var(--line)] bg-white/75 px-5 py-3 text-sm text-[#4f4d82]"
+                  >
+                    退出登录
+                  </button>
+                </>
+              ) : null}
+            </div>
           </div>
         </div>
       </header>
@@ -839,7 +849,7 @@ export function ProgressWallApp() {
                     )
                   }
                   disabled={profileSaving}
-                  className="rounded-full bg-[#3f2f43] px-5 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                  className="rounded-full bg-[var(--accent-strong)] px-5 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {profileSaving ? "保存中..." : "保存名片"}
                 </button>
@@ -849,7 +859,7 @@ export function ProgressWallApp() {
                 <input
                   id="profile-name"
                   defaultValue={me.displayName}
-                  className="rounded-2xl border border-[var(--line)] bg-white/80 px-4 py-3 outline-none transition focus:border-[#ff8fb1]"
+                  className="rounded-2xl border border-[var(--line)] bg-white/80 px-4 py-3 outline-none transition focus:border-[var(--accent)]"
                 />
                 <input
                   id="profile-color"
@@ -881,7 +891,7 @@ export function ProgressWallApp() {
 
           <section className="space-y-6">
             {notice ? (
-              <div className="rounded-[24px] bg-[#fff2f6] px-5 py-4 text-sm text-[#8b4e68]">
+              <div className="rounded-[24px] bg-[var(--notice-bg)] px-5 py-4 text-sm text-[var(--notice-text)]">
                 {notice}
               </div>
             ) : null}

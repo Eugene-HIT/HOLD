@@ -62,7 +62,7 @@ export function RecordDetailPanel({
                 <button
                   type="button"
                   onClick={onEdit}
-                  className="rounded-full border border-[var(--line)] bg-white/80 px-4 py-2 text-sm font-medium text-[#5f4a61] transition hover:border-[#ff8fb1]"
+                  className="rounded-full border border-[var(--line)] bg-white/80 px-4 py-2 text-sm font-medium text-[#4f4d82] transition hover:border-[var(--accent)]"
                 >
                   编辑记录
                 </button>
@@ -74,7 +74,7 @@ export function RecordDetailPanel({
                     }
                   }}
                   disabled={deleting}
-                  className="rounded-full border border-[#f1bcc8] bg-[#fff2f6] px-4 py-2 text-sm font-medium text-[#9b4964] transition hover:border-[#e88ea8] disabled:cursor-not-allowed disabled:opacity-60"
+                  className="rounded-full border border-[#c8befd] bg-[#eeebff] px-4 py-2 text-sm font-medium text-[#5a54a0] transition hover:border-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {deleting ? "删除中..." : "删除记录"}
                 </button>
