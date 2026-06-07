@@ -1,0 +1,110 @@
+@import "tailwindcss";
+
+:root {
+  --background: #fff9f4;
+  --foreground: #3f2f43;
+  --card: rgba(255, 255, 255, 0.82);
+  --line: rgba(107, 77, 117, 0.14);
+  --accent: #ff8fb1;
+  --accent-strong: #f76b96;
+  --mint: #95dfc0;
+  --ink-soft: #70586f;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-body);
+  --font-mono: var(--font-accent);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, rgba(255, 192, 203, 0.35), transparent 28%),
+    radial-gradient(circle at top right, rgba(149, 223, 192, 0.28), transparent 24%),
+    linear-gradient(180deg, #fffaf7 0%, #fff4fb 100%);
+  color: var(--foreground);
+  font-family: var(--font-body), sans-serif;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+.panel-card {
+  background: var(--card);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow: 0 18px 60px rgba(161, 123, 145, 0.16);
+}
+
+.pixel-chip {
+  position: relative;
+  box-shadow: 4px 4px 0 rgba(111, 77, 112, 0.14);
+}
+
+.pixel-chip::after {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  border: 1px dashed rgba(255, 255, 255, 0.6);
+  pointer-events: none;
+}
+
+.pixel-float {
+  animation: pixelFloat 4.5s ease-in-out infinite;
+}
+
+.timeline-grid {
+  background-image:
+    linear-gradient(to right, rgba(124, 92, 129, 0.08) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(124, 92, 129, 0.08) 1px, transparent 1px);
+  background-size: 96px 100%, 100% 100%;
+}
+
+.noise-overlay {
+  position: relative;
+}
+
+.noise-overlay::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.5) 0.7px, transparent 0.7px);
+  background-size: 12px 12px;
+  opacity: 0.25;
+  pointer-events: none;
+}
+
+@keyframes pixelFloat {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+@media (max-width: 768px) {
+  .timeline-grid {
+    background-size: 72px 100%, 100% 100%;
+  }
+}
