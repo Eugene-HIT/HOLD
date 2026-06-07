@@ -231,9 +231,13 @@ export function ProgressWallApp() {
   const [session, setSession] = useState<Session | null>(null);
   const [me, setMe] = useState<MemberProfile | null>(null);
   const [profiles, setProfiles] = useState<MemberProfile[]>([]);
-  const [records, setRecords] = useState<ProgressRecord[]>(SAMPLE_RECORDS);
+  const [records, setRecords] = useState<ProgressRecord[]>(() =>
+    supabase ? [] : SAMPLE_RECORDS,
+  );
   const [invites, setInvites] = useState<MemberInvite[]>([]);
-  const [selectedRecordId, setSelectedRecordId] = useState<string>(SAMPLE_RECORDS[0].id);
+  const [selectedRecordId, setSelectedRecordId] = useState<string>(() =>
+    supabase ? "" : SAMPLE_RECORDS[0].id,
+  );
   const [editorOpen, setEditorOpen] = useState(false);
   const [editorValue, setEditorValue] = useState<RecordEditorValue | null>(null);
   const [notice, setNotice] = useState(() =>
@@ -336,10 +340,16 @@ export function ProgressWallApp() {
             workspaceData.records[0]?.id ??
             "",
         );
-        setNotice("已同步线上记录。新增或编辑后，其他成员会近实时看到变化。");
+        setNotice(
+          workspaceData.records.length > 0
+            ? "已同步线上记录。新增或编辑后，其他成员会近实时看到变化。"
+            : "当前数据库里还没有正式记录，可以先新增一条开发总结。",
+        );
       } catch (error) {
         const message = error instanceof Error ? error.message : "同步数据失败";
-        setNotice(message);
+        setRecords([]);
+        setSelectedRecordId("");
+        setNotice(`线上数据加载失败：${message}`);
       }
     };
 
