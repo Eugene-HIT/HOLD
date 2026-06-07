@@ -11,6 +11,7 @@
 interface AuthPanelProps {
   email: string;
   loading: boolean;
+  cooldownSeconds: number;
   notice: string;
   onEmailChange: (value: string) => void;
   onSubmit: () => void;
@@ -19,10 +20,13 @@ interface AuthPanelProps {
 export function AuthPanel({
   email,
   loading,
+  cooldownSeconds,
   notice,
   onEmailChange,
   onSubmit,
 }: AuthPanelProps) {
+  const buttonDisabled = loading || cooldownSeconds > 0;
+
   return (
     <section className="panel-card noise-overlay rounded-[28px] p-6 md:p-8">
       <div className="mb-5 flex items-center gap-3">
@@ -48,16 +52,21 @@ export function AuthPanel({
         <button
           type="button"
           onClick={onSubmit}
-          disabled={loading}
+          disabled={buttonDisabled}
           className="w-full rounded-2xl bg-[#3f2f43] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#523d57] disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {loading ? "发送登录链接中..." : "发送邮箱登录链接"}
+          {loading
+            ? "发送登录链接中..."
+            : cooldownSeconds > 0
+              ? `${cooldownSeconds}s 后可再次发送`
+              : "发送邮箱登录链接"}
         </button>
 
         <div className="rounded-2xl border border-dashed border-[var(--line)] bg-white/55 p-4 text-sm leading-7 text-[var(--ink-soft)]">
           <p>1. 输入邮箱后，Supabase 会发送一封登录邮件。</p>
           <p>2. 首次进入时会检查邮箱是否在成员白名单中。</p>
-          <p>3. 当前页面下方会展示一组预览记录，方便你先看界面形态。</p>
+          <p>3. 为了避免邮件接口限流，每次发送后会有 60 秒冷却。</p>
+          <p>4. 当前页面下方会展示一组预览记录，方便你先看界面形态。</p>
         </div>
 
         {notice ? (

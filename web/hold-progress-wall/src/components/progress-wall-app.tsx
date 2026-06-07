@@ -40,6 +40,19 @@ function pickColor(seed: string) {
   return COLOR_PRESETS[hashString(seed) % COLOR_PRESETS.length];
 }
 
+function getStoragePathFromPublicUrl(imageUrl: string) {
+  const marker = `/${APP_CONFIG.storageBucket}/`;
+  const markerIndex = imageUrl.indexOf(marker);
+
+  if (markerIndex < 0) {
+    return null;
+  }
+
+  return decodeURIComponent(
+    imageUrl.slice(markerIndex + marker.length).split("?")[0] ?? "",
+  );
+}
+
 function makeEmptyRecordDraft() {
   const now = new Date();
   now.setMinutes(now.getMinutes() - (now.getMinutes() % 10), 0, 0);
@@ -226,6 +239,22 @@ async function uploadImages(
   return urls;
 }
 
+async function deleteRecordImages(client: SupabaseClient, imageUrls: string[]) {
+  const paths = imageUrls
+    .map((imageUrl) => getStoragePathFromPublicUrl(imageUrl))
+    .filter((path): path is string => Boolean(path));
+
+  if (!paths.length) {
+    return;
+  }
+
+  const { error } = await client.storage.from(APP_CONFIG.storageBucket).remove(paths);
+
+  if (error) {
+    throw error;
+  }
+}
+
 export function ProgressWallApp() {
   const supabase = useMemo(() => getBrowserSupabaseClient(), []);
   const [session, setSession] = useState<Session | null>(null);
@@ -247,8 +276,11 @@ export function ProgressWallApp() {
   const [booting, setBooting] = useState(() => Boolean(supabase));
   const [inviteSaving, startInviteSaving] = useTransition();
   const [recordSaving, startRecordSaving] = useTransition();
+  const [recordDeleting, startRecordDeleting] = useTransition();
   const [authSending, startAuthSending] = useTransition();
   const [profileSaving, startProfileSaving] = useTransition();
+  const [authCooldownUntil, setAuthCooldownUntil] = useState(0);
+  const [authCooldownNow, setAuthCooldownNow] = useState(0);
   const [inviteDraft, setInviteDraft] = useState<InviteEditorValue>({
     email: "",
     displayNameHint: "",
@@ -261,6 +293,29 @@ export function ProgressWallApp() {
 
   const canEditSelectedRecord =
     !!selectedRecord && !!me && (me.role === "admin" || me.id === selectedRecord.ownerId);
+
+  const authCooldownSeconds = authCooldownUntil
+    ? Math.max(0, Math.ceil((authCooldownUntil - authCooldownNow) / 1000))
+    : 0;
+
+  useEffect(() => {
+    if (!authCooldownUntil) {
+      return;
+    }
+
+    const timer = window.setInterval(() => {
+      const currentTime = Date.now();
+      setAuthCooldownNow(currentTime);
+
+      if (currentTime >= authCooldownUntil) {
+        setAuthCooldownUntil(0);
+      }
+    }, 1000);
+
+    return () => {
+      window.clearInterval(timer);
+    };
+  }, [authCooldownUntil]);
 
   useEffect(() => {
     if (!supabase) {
@@ -464,7 +519,18 @@ export function ProgressWallApp() {
       return;
     }
 
+    if (authCooldownSeconds > 0) {
+      setNotice(`邮件刚发送过，请等待 ${authCooldownSeconds} 秒后再试。`);
+      return;
+    }
+
     startAuthSending(async () => {
+      const startCooldown = () => {
+        const cooldownUntil = Date.now() + 60_000;
+        setAuthCooldownNow(Date.now());
+        setAuthCooldownUntil(cooldownUntil);
+      };
+
       const { error } = await supabase.auth.signInWithOtp({
         email: emailInput.trim(),
         options: {
@@ -474,10 +540,17 @@ export function ProgressWallApp() {
       });
 
       if (error) {
+        if (/rate limit/i.test(error.message)) {
+          startCooldown();
+          setNotice("邮件发送过于频繁，已进入 60 秒冷却。一般不需要买服务，先等冷却结束再重试即可。");
+          return;
+        }
+
         setNotice(error.message);
         return;
       }
 
+      startCooldown();
       setNotice("登录邮件已发送，请去邮箱点开 Magic Link。首次登录前请先加入后台白名单。");
     });
   }
@@ -620,6 +693,48 @@ export function ProgressWallApp() {
     });
   }
 
+  function handleDeleteRecord(recordId: string) {
+    if (!supabase || !me) {
+      return;
+    }
+
+    startRecordDeleting(async () => {
+      const currentRecord = records.find((record) => record.id === recordId);
+
+      if (!currentRecord) {
+        setNotice("未找到要删除的记录。请刷新后重试。");
+        return;
+      }
+
+      const { error } = await supabase
+        .from("progress_records")
+        .delete()
+        .eq("id", recordId);
+
+      if (error) {
+        setNotice(error.message);
+        return;
+      }
+
+      let imageCleanupFailed = false;
+
+      try {
+        await deleteRecordImages(supabase, currentRecord.imageUrls);
+      } catch {
+        imageCleanupFailed = true;
+      }
+
+      await reloadWorkspace(me);
+      setEditorOpen(false);
+      setEditorValue(null);
+      setNotice(
+        imageCleanupFailed
+          ? "记录已删除，但关联图片清理失败了，稍后可再处理。"
+          : "记录已删除。",
+      );
+    });
+  }
+
   if (booting) {
     return (
       <main className="flex min-h-screen items-center justify-center px-6 py-20">
@@ -681,6 +796,7 @@ export function ProgressWallApp() {
           <AuthPanel
             email={emailInput}
             loading={authSending}
+            cooldownSeconds={authCooldownSeconds}
             notice={notice}
             onEmailChange={setEmailInput}
             onSubmit={handleSignIn}
@@ -695,7 +811,9 @@ export function ProgressWallApp() {
             <RecordDetailPanel
               record={selectedRecord}
               canEdit={false}
+              deleting={false}
               onEdit={() => undefined}
+              onDelete={() => undefined}
             />
           </section>
         </div>
@@ -770,7 +888,13 @@ export function ProgressWallApp() {
             <RecordDetailPanel
               record={selectedRecord}
               canEdit={canEditSelectedRecord}
+              deleting={recordDeleting}
               onEdit={openEditEditor}
+              onDelete={() => {
+                if (selectedRecord) {
+                  handleDeleteRecord(selectedRecord.id);
+                }
+              }}
             />
           </section>
         </div>

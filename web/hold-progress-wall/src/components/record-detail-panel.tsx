@@ -15,7 +15,9 @@ import type { ProgressRecord } from "@/lib/types";
 interface RecordDetailPanelProps {
   record: ProgressRecord | null;
   canEdit: boolean;
+  deleting: boolean;
   onEdit: () => void;
+  onDelete: () => void;
 }
 
 function formatDetailTime(value: string) {
@@ -30,7 +32,9 @@ function formatDetailTime(value: string) {
 export function RecordDetailPanel({
   record,
   canEdit,
+  deleting,
   onEdit,
+  onDelete,
 }: RecordDetailPanelProps) {
   return (
     <aside className="panel-card rounded-[28px] p-5 md:p-6">
@@ -54,13 +58,27 @@ export function RecordDetailPanel({
             </div>
 
             {canEdit ? (
-              <button
-                type="button"
-                onClick={onEdit}
-                className="rounded-full border border-[var(--line)] bg-white/80 px-4 py-2 text-sm font-medium text-[#5f4a61] transition hover:border-[#ff8fb1]"
-              >
-                编辑记录
-              </button>
+              <div className="flex flex-wrap items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={onEdit}
+                  className="rounded-full border border-[var(--line)] bg-white/80 px-4 py-2 text-sm font-medium text-[#5f4a61] transition hover:border-[#ff8fb1]"
+                >
+                  编辑记录
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (window.confirm("确认删除这条记录吗？删除后无法恢复。")) {
+                      onDelete();
+                    }
+                  }}
+                  disabled={deleting}
+                  className="rounded-full border border-[#f1bcc8] bg-[#fff2f6] px-4 py-2 text-sm font-medium text-[#9b4964] transition hover:border-[#e88ea8] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {deleting ? "删除中..." : "删除记录"}
+                </button>
+              </div>
             ) : null}
           </div>
 
