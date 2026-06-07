@@ -317,11 +317,6 @@ export function ProgressWallApp() {
           return;
         }
 
-        if (!active) {
-          return;
-        }
-
-        setMe(ensuredProfile);
         const workspaceData = await loadWorkspaceData(
           supabase,
           ensuredProfile.role === "admin",
@@ -331,6 +326,7 @@ export function ProgressWallApp() {
           return;
         }
 
+        setMe(ensuredProfile);
         setProfiles(workspaceData.profiles);
         setInvites(workspaceData.invites);
         setRecords(workspaceData.records);
@@ -347,6 +343,11 @@ export function ProgressWallApp() {
         );
       } catch (error) {
         const message = error instanceof Error ? error.message : "同步数据失败";
+
+        if (!active) {
+          return;
+        }
+
         setRecords([]);
         setSelectedRecordId("");
         setNotice(`线上数据加载失败：${message}`);
@@ -354,6 +355,16 @@ export function ProgressWallApp() {
     };
 
     void hydrate();
+
+    return () => {
+      active = false;
+    };
+  }, [session, supabase]);
+
+  useEffect(() => {
+    if (!supabase || !me) {
+      return;
+    }
 
     const channel = supabase
       .channel("hold-progress-wall-sync")
@@ -405,10 +416,9 @@ export function ProgressWallApp() {
       .subscribe();
 
     return () => {
-      active = false;
       void supabase.removeChannel(channel);
     };
-  }, [session, supabase, me]);
+  }, [supabase, me]);
 
   async function reloadWorkspace(currentProfile: MemberProfile) {
     if (!supabase) {
