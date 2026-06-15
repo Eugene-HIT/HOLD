@@ -111,7 +111,7 @@ export function RecordsTimeline({
   const maxTime = weekEnd.getTime();
   const totalSpan = Math.max(1, maxTime - minTime);
   const marks = createWeekMarks(minTime);
-  const width = 980;
+  const width = 1260;
 
   const weekRecords = records.filter((record) => {
     const recordStart = new Date(record.startAt).getTime();
@@ -170,7 +170,7 @@ export function RecordsTimeline({
         </div>
       </div>
 
-      <div className="rounded-[24px] border border-[var(--line)] bg-white/65">
+      <div className="overflow-x-auto rounded-[24px] border border-[var(--line)] bg-white/65">
         <div className="min-w-full p-4" style={{ width }}>
           <div className="grid grid-cols-[220px_1fr] gap-4">
             <div />

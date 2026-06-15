@@ -756,7 +756,7 @@ export function ProgressWallApp() {
     <main className="mx-auto flex min-h-screen w-full max-w-[1440px] flex-col gap-6 px-4 py-6 md:px-6 md:py-8">
       <header className="panel-card noise-overlay rounded-[32px] px-5 py-6 md:px-8 md:py-7">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-          <div>
+          <div className="flex-1">
             <div className="pixel-chip inline-flex rounded-2xl bg-[var(--accent-soft)] px-3 py-2 text-[11px] font-mono uppercase tracking-[0.22em] text-[#51508d]">
               dev log wall
             </div>
@@ -768,9 +768,9 @@ export function ProgressWallApp() {
             </p>
           </div>
 
-          <div className="flex max-w-[520px] flex-col gap-4 lg:items-end">
+          <div className="flex w-full max-w-[680px] flex-col gap-4 lg:items-end">
             <EmojiHero />
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3 lg:self-end">
               {me ? (
                 <>
                   <div className="flex items-center gap-2 rounded-full bg-white/70 px-4 py-2 text-sm text-[#585792]">
