@@ -8,6 +8,10 @@
  * - 2026-06-08 初始创建时间轴组件。
  */
 
+"use client";
+
+import { useMemo, useState } from "react";
+
 import type { ProgressRecord } from "@/lib/types";
 
 interface RecordsTimelineProps {
@@ -20,23 +24,44 @@ function formatTimelineLabel(value: string) {
   return new Intl.DateTimeFormat("zh-CN", {
     month: "numeric",
     day: "numeric",
+    weekday: "short",
+  }).format(new Date(value));
+}
+
+function formatTimeOnly(value: string) {
+  return new Intl.DateTimeFormat("zh-CN", {
     hour: "2-digit",
     minute: "2-digit",
   }).format(new Date(value));
 }
 
-function createTimelineMarks(startMs: number, endMs: number) {
-  const totalHours = Math.max(1, Math.ceil((endMs - startMs) / (1000 * 60 * 60)));
-  const stepHours = totalHours > 24 ? 6 : totalHours > 12 ? 3 : 2;
-  const stepMs = stepHours * 60 * 60 * 1000;
-  const alignedStart = Math.floor(startMs / stepMs) * stepMs;
-  const marks: number[] = [];
+function getWeekStart(date: Date) {
+  const value = new Date(date);
+  const day = value.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  value.setDate(value.getDate() + diff);
+  value.setHours(0, 0, 0, 0);
+  return value;
+}
 
-  for (let cursor = alignedStart; cursor <= endMs + stepMs; cursor += stepMs) {
+function toWeekKey(date: Date) {
+  return getWeekStart(date).toISOString();
+}
+
+function createWeekMarks(startMs: number) {
+  const marks: number[] = [];
+  const stepMs = 24 * 60 * 60 * 1000;
+  const endMs = startMs + 7 * stepMs;
+
+  for (let cursor = startMs; cursor <= endMs; cursor += stepMs) {
     marks.push(cursor);
   }
 
   return marks;
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max);
 }
 
 export function RecordsTimeline({
@@ -44,7 +69,27 @@ export function RecordsTimeline({
   selectedRecordId,
   onSelect,
 }: RecordsTimelineProps) {
-  if (!records.length) {
+  const weekKeys = useMemo(() => {
+    return Array.from(
+      new Set(records.map((record) => toWeekKey(new Date(record.startAt)))),
+    ).sort((left, right) => new Date(left).getTime() - new Date(right).getTime());
+  }, [records]);
+
+  const selectedRecord =
+    records.find((record) => record.id === selectedRecordId) ?? records[0];
+
+  const selectedWeekKey = selectedRecord
+    ? toWeekKey(new Date(selectedRecord.startAt))
+    : weekKeys[weekKeys.length - 1];
+
+  const [manualWeekKey, setManualWeekKey] = useState<string | null>(null);
+
+  const currentWeekKey =
+    manualWeekKey && weekKeys.includes(manualWeekKey)
+      ? manualWeekKey
+      : selectedWeekKey;
+
+  if (!records.length || !selectedWeekKey) {
     return (
       <div className="panel-card rounded-[28px] p-8 text-center text-[var(--ink-soft)]">
         还没有正式记录。登录后点“新增记录”，就能开始同步开发进度。
@@ -52,13 +97,36 @@ export function RecordsTimeline({
     );
   }
 
-  const starts = records.map((record) => new Date(record.startAt).getTime());
-  const ends = records.map((record) => new Date(record.endAt).getTime());
-  const minTime = Math.min(...starts) - 30 * 60 * 1000;
-  const maxTime = Math.max(...ends) + 30 * 60 * 1000;
+  const currentWeekIndex = Math.max(
+    0,
+    weekKeys.findIndex((weekKey) => weekKey === currentWeekKey),
+  );
+
+  const resolvedWeekKey = weekKeys[currentWeekIndex] ?? weekKeys[0];
+  const weekStart = new Date(resolvedWeekKey);
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekEnd.getDate() + 7);
+
+  const minTime = weekStart.getTime();
+  const maxTime = weekEnd.getTime();
   const totalSpan = Math.max(1, maxTime - minTime);
-  const marks = createTimelineMarks(minTime, maxTime);
-  const width = Math.max(920, marks.length * 120);
+  const marks = createWeekMarks(minTime);
+  const width = 980;
+
+  const weekRecords = records.filter((record) => {
+    const recordStart = new Date(record.startAt).getTime();
+    const recordEnd = new Date(record.endAt).getTime();
+
+    return recordEnd > minTime && recordStart < maxTime;
+  });
+
+  const weekRangeLabel = `${new Intl.DateTimeFormat("zh-CN", {
+    month: "numeric",
+    day: "numeric",
+  }).format(weekStart)} - ${new Intl.DateTimeFormat("zh-CN", {
+    month: "numeric",
+    day: "numeric",
+  }).format(new Date(maxTime - 1))}`;
 
   return (
     <div className="panel-card rounded-[32px] p-4 md:p-6">
@@ -66,15 +134,43 @@ export function RecordsTimeline({
         <div>
           <h2 className="text-xl font-semibold text-[#45497d]">开发记录时间轴</h2>
           <p className="mt-1 text-sm text-[var(--ink-soft)]">
-            点击任意色块可查看详情。颜色由成员个人名片决定。
+            现在按周分页展示，避免跨度一拉长整页一起被撑开。
           </p>
         </div>
-        <div className="rounded-full bg-[#eef1ff] px-4 py-2 text-xs font-mono uppercase tracking-[0.2em] text-[#5f66ab]">
-          live timeline
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() =>
+              setManualWeekKey(
+                weekKeys[clamp(currentWeekIndex - 1, 0, weekKeys.length - 1)] ??
+                  resolvedWeekKey,
+              )
+            }
+            disabled={currentWeekIndex === 0}
+            className="rounded-full border border-[var(--line)] bg-white/80 px-3 py-2 text-xs font-semibold text-[#5f66ab] disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            上一周
+          </button>
+          <div className="rounded-full bg-[#eef1ff] px-4 py-2 text-xs font-mono uppercase tracking-[0.12em] text-[#5f66ab]">
+            {weekRangeLabel}
+          </div>
+          <button
+            type="button"
+            onClick={() =>
+              setManualWeekKey(
+                weekKeys[clamp(currentWeekIndex + 1, 0, weekKeys.length - 1)] ??
+                  resolvedWeekKey,
+              )
+            }
+            disabled={currentWeekIndex === weekKeys.length - 1}
+            className="rounded-full border border-[var(--line)] bg-white/80 px-3 py-2 text-xs font-semibold text-[#5f66ab] disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            下一周
+          </button>
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-[24px] border border-[var(--line)] bg-white/65">
+      <div className="rounded-[24px] border border-[var(--line)] bg-white/65">
         <div className="min-w-full p-4" style={{ width }}>
           <div className="grid grid-cols-[220px_1fr] gap-4">
             <div />
@@ -99,11 +195,19 @@ export function RecordsTimeline({
           </div>
 
           <div className="timeline-grid mt-3 space-y-3 rounded-[20px] p-3">
-            {records.map((record) => {
+            {weekRecords.length ? (
+              weekRecords.map((record) => {
               const startMs = new Date(record.startAt).getTime();
               const endMs = new Date(record.endAt).getTime();
-              const left = ((startMs - minTime) / totalSpan) * 100;
-              const widthPercent = Math.max(8, ((endMs - startMs) / totalSpan) * 100);
+              const clampedStart = clamp(startMs, minTime, maxTime);
+              const clampedEnd = clamp(endMs, minTime, maxTime);
+              const left = ((clampedStart - minTime) / totalSpan) * 100;
+              const widthPercent = Math.max(
+                8,
+                ((Math.max(clampedEnd, clampedStart + 30 * 60 * 1000) - clampedStart) /
+                  totalSpan) *
+                  100,
+              );
               const selected = selectedRecordId === record.id;
 
               return (
@@ -139,21 +243,20 @@ export function RecordsTimeline({
                     >
                       <span className="block font-semibold">{record.title}</span>
                       <span className="mt-1 block text-xs text-white/85">
-                        {new Intl.DateTimeFormat("zh-CN", {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        }).format(new Date(record.startAt))}
+                        {formatTimeOnly(record.startAt)}
                         {" - "}
-                        {new Intl.DateTimeFormat("zh-CN", {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        }).format(new Date(record.endAt))}
+                        {formatTimeOnly(record.endAt)}
                       </span>
                     </button>
                   </div>
                 </div>
               );
-            })}
+              })
+            ) : (
+              <div className="rounded-[18px] border border-dashed border-[var(--line)] bg-white/70 px-4 py-8 text-center text-sm text-[var(--ink-soft)]">
+                这一周还没有记录，切到上一周或下一周看看。
+              </div>
+            )}
           </div>
         </div>
       </div>

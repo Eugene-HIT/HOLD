@@ -15,7 +15,7 @@ import type { Session, SupabaseClient } from "@supabase/supabase-js";
 
 import { AdminPanel } from "@/components/admin-panel";
 import { AuthPanel } from "@/components/auth-panel";
-import { PixelPalsHero } from "@/components/pixel-pals-hero";
+import { EmojiHero } from "@/components/emoji-hero";
 import { RecordDetailPanel } from "@/components/record-detail-panel";
 import { RecordEditor } from "@/components/record-editor";
 import { RecordsTimeline } from "@/components/records-timeline";
@@ -769,7 +769,7 @@ export function ProgressWallApp() {
           </div>
 
           <div className="flex max-w-[520px] flex-col gap-4 lg:items-end">
-            <PixelPalsHero />
+            <EmojiHero />
             <div className="flex flex-wrap items-center gap-3">
               {me ? (
                 <>
