@@ -2,12 +2,13 @@
  * 创建时间: 2026-05-22
  * 文件主要职责: 集中管理 XIAO ESP32S3 当前工程的板级参数、MAX30102 验证参数与 ICS43434 麦克风参数。
  * 核心函数输入输出: 本文件仅提供常量定义，供主程序和传感器模块读取引脚、节拍、地址与采样配置。
- * 最后更改时间: 2026-05-25
+ * 最后更改时间: 2026-06-09
  * 累加式更改日志:
  * - 2026-05-22: 新建板级配置头文件，定义板载用户灯引脚和闪烁周期。
  * - 2026-05-22: 随 PlatformIO 工程一起移动到 HOLD 根目录。
  * - 2026-05-23: 补充 MAX30102 原始数据读取所需的 I2C 引脚、地址与日志节拍配置。
  * - 2026-05-25: 补充 ICS43434 麦克风 I2S 引脚、采样率、批处理与日志节拍配置。
+ * - 2026-06-09: 补充单 IMU 呼吸实验的 VOFA 调试开关与输出节拍配置。
  * 注意事项:
  * - XIAO ESP32S3 系列板载用户灯为低电平点亮。
  * - 当前 I2C 引脚按 Seeed 官方 XIAO ESP32S3 默认功能使用 D4(GPIO5)/D5(GPIO6)。
@@ -67,6 +68,9 @@ constexpr unsigned long kAd8232PollIntervalMs = 4;
 constexpr unsigned long kAd8232LogIntervalMs = 100;
 constexpr bool kEnableAd8232VofaStream = false;
 constexpr unsigned long kAd8232VofaStreamIntervalMs = kAd8232PollIntervalMs;
+
+constexpr bool kEnableMpu6050RespirationVofaStream = true;
+constexpr unsigned long kMpu6050RespirationVofaStreamIntervalMs = 20;
 
 constexpr uint32_t kFingerPresentIrMeanThreshold = 8000;
 constexpr uint32_t kFingerPresentRedMeanThreshold = 2000;

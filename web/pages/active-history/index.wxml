@@ -1,0 +1,34 @@
+<view class="history-page">
+  <view class="history-hero">
+    <view class="hero-title">主动检测历史</view>
+    <view class="hero-subtitle">先用固定内容占位，后续替换为真实指部 PPG 检测记录与报告。</view>
+  </view>
+
+  <block wx:for="{{activeMeasurements}}" wx:key="id">
+    <view class="history-card" bindtap="openReport" data-id="{{item.id}}">
+      <view class="history-head">
+        <view>
+          <view class="history-tag">{{item.resultTag}}</view>
+          <view class="history-title">{{item.title}}</view>
+        </view>
+        <view class="history-time">{{item.startedAt}}</view>
+      </view>
+
+      <view class="history-copy">{{item.summary}}</view>
+
+      <view class="metric-grid">
+        <block wx:for="{{item.metrics}}" wx:key="label">
+          <view class="metric-card">
+            <view class="metric-value">{{item.value}}{{item.unit}}</view>
+            <view class="metric-label">{{item.label}}</view>
+          </view>
+        </block>
+      </view>
+
+      <view class="history-footer">
+        <view class="duration-chip">时长 {{item.durationLabel}}</view>
+        <view class="detail-link">查看报告</view>
+      </view>
+    </view>
+  </block>
+</view>

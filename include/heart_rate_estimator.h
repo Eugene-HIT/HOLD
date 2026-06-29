@@ -20,13 +20,31 @@
 
 class HeartRateEstimator {
  public:
+  struct Profile {
+    uint32_t presenceIrMeanThreshold = 0;
+    uint32_t presenceRedMeanThreshold = 0;
+    float dcAlpha = 0.0f;
+    float signalAlpha = 0.0f;
+    float amplitudeMin = 0.0f;
+    float amplitudeMax = 0.0f;
+    unsigned long beatIntervalMinMs = 0;
+    unsigned long beatIntervalMaxMs = 0;
+    unsigned long beatStaleTimeoutMs = 0;
+    unsigned long contactLossResetMs = 0;
+    bool usePeakTroughDetector = false;
+  };
+
+  static Profile defaultFingerProfile();
+
   void reset();
+  void setProfile(const Profile& profile);
   void addSample(const Max30102RawReader::Sample& sample);
 
   bool hasValidBpm() const;
   float bpm() const;
   bool fingerPresent() const;
   bool beatDetectedRecently() const;
+  bool contactPresent() const;
   uint32_t lastIr() const;
   uint32_t lastRed() const;
   uint32_t averageIr() const;
@@ -41,6 +59,8 @@ class HeartRateEstimator {
   static constexpr size_t kPresenceWindowSize = 25;
   static constexpr size_t kSignalWindowSize = 4;
 
+  void acceptBeatCandidate(unsigned long beat_at_ms, float amplitude);
+  void updatePeakTroughDetector(unsigned long sample_at_ms);
   void pushBeatInterval(unsigned long interval_ms);
   float averagedBpm() const;
   void resetTrackingState(bool clearBeatCount);
@@ -66,6 +86,8 @@ class HeartRateEstimator {
   unsigned long last_beat_at_ms_ = 0;
   unsigned long last_beat_interval_ms_ = 0;
   unsigned long last_contact_at_ms_ = 0;
+  unsigned long previous_sample_at_ms_ = 0;
+  unsigned long last_trough_at_ms_ = 0;
   unsigned long beat_intervals_ms_[kBpmWindowSize] = {};
   size_t beat_intervals_count_ = 0;
   size_t beat_intervals_index_ = 0;
@@ -79,4 +101,8 @@ class HeartRateEstimator {
   float signal_window_sum_ = 0.0f;
   size_t signal_count_ = 0;
   size_t signal_index_ = 0;
+  float previous_slope_ = 0.0f;
+  float last_trough_value_ = 0.0f;
+  bool has_trough_ = false;
+  Profile profile_{};
 };

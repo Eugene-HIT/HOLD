@@ -1,0 +1,17 @@
+{
+  "pages": [
+    "pages/home/index",
+    "pages/active-history/index",
+    "pages/active-report/index",
+    "pages/daily-analysis/index",
+    "pages/index/index"
+  ],
+  "window": {
+    "navigationBarBackgroundColor": "#F6F2E8",
+    "navigationBarTitleText": "HOLD",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#F6F2E8"
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}

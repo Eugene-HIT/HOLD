@@ -1,18 +1,32 @@
-# XIAO ESP32S3 点灯测试
+# HOLD 工程仓库
 
-## 目的
-本工作区根目录现在直接作为 PlatformIO 工程根目录，用于验证以下链路：
-- PlatformIO 插件可将 HOLD 识别为工程
-- 开发板可正常烧录
-- 串口日志可正常输出
-- 板载用户灯可按固定节奏闪烁
+## 项目简介
+本仓库用于承载 HOLD 项目的嵌入式固件实验、整机联调、小程序前端壳子与阶段性开发记录。
 
-## 当前实现
-- 板卡配置: seeed_xiao_esp32s3
-- 框架: Arduino on PlatformIO
-- 用户灯引脚: GPIO21
-- 用户灯逻辑: 低电平点亮
-- 闪烁周期: 500ms
+当前重点包括：
+- XIAO ESP32S3 多传感器固件验证
+- MAX30102、MPU6050/MPU6500、压力模块、DRV2605L 的独立探针与整机冒烟测试
+- 呼吸/心率相关原始数据采集与日志导出
+- 微信小程序调试页与用户页壳子
+- 接线文档、开发日志和阶段性方案沉淀
+
+## 当前工程结构
+- 固件主工程：PlatformIO + Arduino，板卡以 `seeed_xiao_esp32s3` 为主
+- 传感器与算法公共头文件：`include/`
+- 各独立实验入口与整机测试入口：`src/`
+- 接线文档与方案说明：`docs/`
+- 开发日志与阶段记录：`log/`
+- 小程序与云函数：`web/`
+- 串口采集与辅助脚本：`tools/`
+
+## 当前实现范围
+- 独立环境：MPU6050/MPU6500 探针、单 IMU 呼吸实验、MAX30102 指尖/胸口环境、DRV2605L LRA 环境、BLE 按键链路环境
+- 整机环境：IMU + PPG + 压力 + DRV2605L + 热反馈 PWM + RGB 流水灯的统一冒烟测试
+- 诊断能力：I2C 地址可见性、启动阶段日志、RGB 单色自检、兼容 `MPU6500/MPU9250` 系列 IMU 识别
+
+## MR60BHA2 当前建议
+- XIAO ESP32C6 + MR60BHA2 的首轮验证暂时改走 Arduino IDE 独立草图路径，避免继续受 PlatformIO 的 ESP32-C6 Arduino 环境问题阻塞。
+- 可直接使用 [arduino/README.md](c:\Users\LBG\Desktop\hold\arduino\README.md) 中的验证步骤与草图。
 
 ## 推荐使用方式
 1. 在 HOLD 根目录执行 pio run 进行编译。

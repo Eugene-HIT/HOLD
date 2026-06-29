@@ -1,0 +1,300 @@
+﻿153:     override fun onCreate(savedInstanceState: Bundle?) {
+
+154:         super.onCreate(savedInstanceState)
+
+155:         setContentView(R.layout.activity_main)
+
+156: 
+
+157:         poolListLayout = findViewById(R.id.poolListLayout)
+
+158:         tabPool = findViewById(R.id.tab_pool)
+
+159:         tabDebug = findViewById(R.id.tab_debug)
+
+160:         poolView = findViewById(R.id.pool_view)
+
+161:         helpDetailView = findViewById(R.id.help_detail_view)
+
+162:         btnBackToPool = findViewById(R.id.btn_back_to_pool)
+
+163:         tvDetailTitle = findViewById(R.id.tv_detail_title)
+
+164:         tvDetailTask = findViewById(R.id.tv_detail_task)
+
+165: 
+
+166:         debugContainer = findViewById(R.id.debug_container)
+
+167:         detailCameraContainer = findViewById(R.id.detail_camera_container)
+
+168:         detailAiPanelContainer = findViewById(R.id.detail_ai_panel_container)
+
+169:         detailPttContainer = findViewById(R.id.detail_ptt_container)
+
+170:         aiDebugPanel = findViewById(R.id.ai_debug_panel)
+
+171: 
+
+172: 
+
+173:         btnBackToPool.setOnClickListener {
+
+174:             helpDetailView.visibility = android.view.View.GONE
+
+175:             reparentViews(false)
+
+176:             poolView.visibility = android.view.View.VISIBLE
+
+177:             findViewById<android.view.View>(R.id.bottom_nav_container).visibility = android.view.View.VISIBLE
+
+178:         }
+
+179: 
+
+180:         debugScroll = findViewById(R.id.debug_scroll)
+
+181: 
+
+182:         tabPool.setOnClickListener {
+
+183:             poolView.visibility = android.view.View.VISIBLE
+
+184:             debugScroll.visibility = android.view.View.GONE
+
+185:             helpDetailView.visibility = android.view.View.GONE
+
+186:             findViewById<android.view.View>(R.id.bottom_nav_container).visibility = android.view.View.VISIBLE
+
+187:             helpDetailView.visibility = android.view.View.GONE
+
+188:             findViewById<android.view.View>(R.id.bottom_nav_container).visibility = android.view.View.VISIBLE
+
+189:             tabPool.backgroundTintList = android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#E7EDF8"))
+
+190:             tabPool.setTextColor(android.graphics.Color.parseColor("#3B82F6"))
+
+191:             tabDebug.backgroundTintList = android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#F3F4F6"))
+
+192:             tabDebug.setTextColor(android.graphics.Color.parseColor("#9CA3AF"))
+
+193:         }
+
+194: 
+
+195:         tabDebug.setOnClickListener {
+
+196:             debugScroll.visibility = android.view.View.VISIBLE
+
+197:             poolView.visibility = android.view.View.GONE
+
+198:             helpDetailView.visibility = android.view.View.GONE
+
+199:             findViewById<android.view.View>(R.id.bottom_nav_container).visibility = android.view.View.VISIBLE
+
+200:             helpDetailView.visibility = android.view.View.GONE
+
+201:             findViewById<android.view.View>(R.id.bottom_nav_container).visibility = android.view.View.VISIBLE
+
+202:             tabDebug.backgroundTintList = android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#E7EDF8"))
+
+203:             tabDebug.setTextColor(android.graphics.Color.parseColor("#3B82F6"))
+
+204:             tabPool.backgroundTintList = android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#F3F4F6"))
+
+205:             tabPool.setTextColor(android.graphics.Color.parseColor("#9CA3AF"))
+
+206:         }
+
+207: 
+
+208: 
+
+209:         tvStatus = findViewById(R.id.tvStatus)
+
+210:         btnScan = findViewById(R.id.btnScan)
+
+211:         btnPushToTalk = findViewById(R.id.btnPushToTalk)
+
+212:         btnPushToTalk.setOnTouchListener { _, event ->
+
+213:             when (event.action) {
+
+214:                 MotionEvent.ACTION_DOWN -> {
+
+215:                     btnPushToTalk.text = "褰曢煶涓?.."
+
+216:                     startPttRecording()
+
+217:                     true
+
+218:                 }
+
+219:                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+
+220:                     btnPushToTalk.text = "鎸変綇褰曢煶锛屾澗寮€鍙戦€?
+
+221:                     stopPttRecordingAndSend()
+
+222:                     true
+
+223:                 }
+
+224:                 else -> false
+
+225:             }
+
+226:         }
+
+227: 
+
+228:         llDeviceList = findViewById(R.id.llDeviceList)
+
+229:         tvImuData = findViewById(R.id.tvImuData)
+
+230:         tvAudioData = findViewById(R.id.tvAudioData)
+
+231:         tbPlayAudio = findViewById(R.id.tbPlayAudio)
+
+232: 
+
+233:         tvAiStatus = findViewById(R.id.tvAiStatus)
+
+234:         tvUserVoice = findViewById(R.id.tvUserVoice)
+
+235:         tvAiReply = findViewById(R.id.tvAiReply)
+
+236:         ivCamera = findViewById(R.id.ivCamera)
+
+237: 
+
+238:         requestBlePermissions()
+
+239:         initAudioTrack()
+
+240: 
+
+241:         val bluetoothManager = getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
+
+242:         bluetoothAdapter = bluetoothManager.adapter
+
+243: 
+
+244:         
+
+245:         val seekBarVolume = findViewById<SeekBar>(R.id.seekBarVolume)
+
+246:         val tvVolumeVal = findViewById<TextView>(R.id.tvVolumeVal)
+
+247:         seekBarVolume.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+
+248:             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+
+249:                 var scaled = progress / 10.0f
+
+250:                 if (scaled < 0.1f) scaled = 0.1f
+
+251:                 hardwareVolumeMultiplier = scaled
+
+252:                 tvVolumeVal.text = String.format("%.1fx", hardwareVolumeMultiplier)
+
+253:             }
+
+254:             override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+
+255:             override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+
+256:         })
+
+257: 
+
+258:         // Auto scan on start
+
+259:         Handler(Looper.getMainLooper()).postDelayed({ startScan() }, 1000)
+
+260: 
+
+261:         // Auto scan on start
+
+262:         Handler(Looper.getMainLooper()).postDelayed({ startScan() }, 1000)
+
+263: 
+
+264:         btnScan.setOnClickListener {
+
+265:             if (!isScanning) startScan() else stopScan()
+
+266:         }
+
+267: 
+
+268:         tbPlayAudio.setOnCheckedChangeListener { _, isChecked ->
+
+269:             isPlayingAudio = isChecked
+
+270:             if (isChecked) {
+
+271:                 playbackBuffer.reset()
+
+272:                 if (audioTrack?.playState != AudioTrack.PLAYSTATE_PLAYING) {
+
+273:                     audioTrack?.play()
+
+274:                 }
+
+275:             } else {
+
+276:                 audioTrack?.pause()
+
+277:                 audioTrack?.flush()
+
+278:             }
+
+279:         }
+
+280:     }
+
+281: 
+
+282:     private fun initAudioTrack() {
+
+283:         val sampleRate = 16000
+
+284:         val channelConfig = AudioFormat.CHANNEL_OUT_MONO
+
+285:         val audioFormat = AudioFormat.ENCODING_PCM_16BIT
+
+286:         val bufferSize = AudioTrack.getMinBufferSize(sampleRate, channelConfig, audioFormat)
+
+287: 
+
+288:         audioTrack = AudioTrack.Builder()
+
+289:             .setAudioAttributes(
+
+290:                 AudioAttributes.Builder()
+
+291:                     .setUsage(AudioAttributes.USAGE_MEDIA)
+
+292:                     .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+
+293:                     .build()
+
+294:             )
+
+295:             .setAudioFormat(
+
+296:                 AudioFormat.Builder()
+
+297:                     .setEncoding(audioFormat)
+
+298:                     .setSampleRate(sampleRate)
+
+299:                     .setChannelMask(channelConfig)
+
+300:                     .build()
+
+301:             )
+
+302:             // Use streaming mode but with a decently sized underlying buffer
+

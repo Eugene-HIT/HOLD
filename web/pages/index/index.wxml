@@ -1,0 +1,38 @@
+<view class="page">
+  <view class="hero">
+    <view class="hero-tag">DEBUG</view>
+    <view class="hero-title">调试链路控制台</view>
+    <view class="hero-subtitle">保留 BLE 扫描、连接、通知与云函数闭环调试能力，供联调阶段单独使用。</view>
+  </view>
+
+  <view class="panel status-panel">
+    <view class="panel-title">蓝牙状态</view>
+    <view class="status-row"><text class="label">适配器</text><text class="value">{{adapterStatus}}</text></view>
+    <view class="status-row"><text class="label">连接</text><text class="value">{{connectionStatus}}</text></view>
+    <view class="status-row"><text class="label">设备</text><text class="value">{{deviceName}}</text></view>
+  </view>
+
+  <view class="actions">
+    <button class="primary" bindtap="handleScanAndConnect" loading="{{scanning}}">扫描并连接</button>
+    <button class="secondary" bindtap="disconnectDevice">断开连接</button>
+  </view>
+
+  <view class="panel">
+    <view class="panel-title">最近一次按钮事件</view>
+    <view class="metric"><text class="metric-value">{{pressCount}}</text><text class="metric-label">累计收到次数</text></view>
+    <view class="status-row"><text class="label">事件时间</text><text class="value">{{lastEventTime}}</text></view>
+    <view class="raw-block">{{lastEventRaw}}</view>
+  </view>
+
+  <view class="panel">
+    <view class="panel-title">云端处理结果</view>
+    <view class="status-row"><text class="label">数据库</text><text class="value">{{cloudStatus}}</text></view>
+    <view class="status-row"><text class="label">云存储</text><text class="value">{{storagePath}}</text></view>
+    <view class="status-row"><text class="label">模型回复</text><text class="value multiline">{{llmReply}}</text></view>
+  </view>
+
+  <view class="panel tip-panel">
+    <view class="panel-title">调试提示</view>
+    <view class="tip-text">当前默认连接设备名为 HOLD-LINK-TEST。若扫描失败，请确认手机蓝牙权限、开发板已烧录、且正在广播。用户态首页已独立拆分，本页仅保留调试用途。</view>
+  </view>
+</view>

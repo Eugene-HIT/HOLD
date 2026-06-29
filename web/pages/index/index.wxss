@@ -1,0 +1,138 @@
+.page {
+  min-height: 100vh;
+  padding: 28rpx;
+  background:
+    radial-gradient(circle at top left, rgba(93, 143, 107, 0.22), transparent 35%),
+    linear-gradient(180deg, #f7f1df 0%, #efe7d0 100%);
+}
+
+.hero {
+  padding: 34rpx 30rpx;
+  border-radius: 28rpx;
+  background: #20372a;
+  color: #f7f1df;
+  box-shadow: 0 18rpx 48rpx rgba(31, 42, 31, 0.18);
+}
+
+.hero-tag {
+  display: inline-block;
+  padding: 8rpx 16rpx;
+  border-radius: 999rpx;
+  background: #d7eb9b;
+  color: #20372a;
+  font-size: 22rpx;
+  font-weight: 700;
+}
+
+.hero-title {
+  margin-top: 18rpx;
+  font-size: 44rpx;
+  font-weight: 700;
+}
+
+.hero-subtitle {
+  margin-top: 12rpx;
+  font-size: 24rpx;
+  line-height: 1.6;
+  color: rgba(247, 241, 223, 0.82);
+}
+
+.panel {
+  margin-top: 24rpx;
+  padding: 28rpx;
+  border-radius: 24rpx;
+  background: rgba(255, 252, 245, 0.92);
+  box-shadow: 0 14rpx 40rpx rgba(49, 56, 43, 0.08);
+}
+
+.panel-title {
+  margin-bottom: 20rpx;
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #20372a;
+}
+
+.status-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 24rpx;
+  padding: 10rpx 0;
+  border-bottom: 1rpx solid rgba(32, 55, 42, 0.08);
+}
+
+.status-row:last-child {
+  border-bottom: none;
+}
+
+.label {
+  color: #6f7467;
+  font-size: 24rpx;
+}
+
+.value {
+  color: #20372a;
+  font-size: 24rpx;
+  text-align: right;
+}
+
+.multiline {
+  flex: 1;
+}
+
+.actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20rpx;
+  margin-top: 24rpx;
+}
+
+.primary,
+.secondary {
+  border-radius: 20rpx;
+  font-size: 28rpx;
+}
+
+.primary {
+  background: #20372a;
+  color: #f7f1df;
+}
+
+.secondary {
+  background: #d7eb9b;
+  color: #20372a;
+}
+
+.metric {
+  display: flex;
+  align-items: baseline;
+  gap: 14rpx;
+  margin-bottom: 18rpx;
+}
+
+.metric-value {
+  font-size: 64rpx;
+  font-weight: 700;
+  color: #20372a;
+}
+
+.metric-label {
+  color: #6f7467;
+  font-size: 24rpx;
+}
+
+.raw-block {
+  margin-top: 18rpx;
+  padding: 18rpx;
+  border-radius: 18rpx;
+  background: #eef3df;
+  color: #20372a;
+  font-size: 22rpx;
+  line-height: 1.6;
+  word-break: break-all;
+}
+
+.tip-text {
+  color: #5b6558;
+  font-size: 24rpx;
+  line-height: 1.7;
+}

@@ -1,0 +1,70 @@
+<view class="daily-page" wx:if="{{activeDay}}">
+  <view class="daily-hero">
+    <view class="hero-title">当日呼吸与心跳分析</view>
+    <view class="hero-subtitle">以天为单位查看摘要结果，先用固定内容占位，后续替换为真实日级聚合数据。</view>
+  </view>
+
+  <scroll-view class="day-tabs" scroll-x="true" enable-flex="true">
+    <block wx:for="{{dailyAnalyses}}" wx:key="day">
+      <view class="day-tab {{index === activeIndex ? 'active' : ''}}" bindtap="switchDay" data-index="{{index}}">
+        <view class="day-tab-date">{{item.day}}</view>
+        <view class="day-tab-label">{{item.title}}</view>
+      </view>
+    </block>
+  </scroll-view>
+
+  <view class="stats-grid">
+    <view class="stat-card breath">
+      <view class="stat-value">{{activeDay.respirationAvg}}</view>
+      <view class="stat-unit">次/分</view>
+      <view class="stat-label">平均呼吸率</view>
+    </view>
+    <view class="stat-card heart">
+      <view class="stat-value">{{activeDay.heartRateAvg}}</view>
+      <view class="stat-unit">bpm</view>
+      <view class="stat-label">平均心率</view>
+    </view>
+    <view class="stat-card stable">
+      <view class="stat-value">{{activeDay.stabilityScore}}</view>
+      <view class="stat-unit">/100</view>
+      <view class="stat-label">稳定度</view>
+    </view>
+  </view>
+
+  <view class="chart-panel">
+    <view class="panel-title">呼吸趋势占位</view>
+    <view class="bars-row">
+      <block wx:for="{{activeDay.respirationBars}}" wx:key="index">
+        <view class="bar-slot">
+          <view class="bar breath-bar" style="height: {{item}}rpx"></view>
+        </view>
+      </block>
+    </view>
+  </view>
+
+  <view class="chart-panel">
+    <view class="panel-title">心率趋势占位</view>
+    <view class="bars-row">
+      <block wx:for="{{activeDay.heartRateBars}}" wx:key="index">
+        <view class="bar-slot">
+          <view class="bar heart-bar" style="height: {{item}}rpx"></view>
+        </view>
+      </block>
+    </view>
+  </view>
+
+  <view class="chart-panel">
+    <view class="panel-title">当日观察</view>
+    <view class="insight-copy">{{activeDay.insight}}</view>
+
+    <view class="timeline-list">
+      <block wx:for="{{activeDay.timeline}}" wx:key="time">
+        <view class="timeline-row">
+          <view class="timeline-time">{{item.time}}</view>
+          <view class="timeline-dot {{item.tone}}"></view>
+          <view class="timeline-text">{{item.label}}</view>
+        </view>
+      </block>
+    </view>
+  </view>
+</view>

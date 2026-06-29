@@ -1,0 +1,108 @@
+page {
+  background-color: #f2f2f6;
+}
+.dashboard {
+  padding: 20px 16px;
+  padding-bottom: 50px;
+}
+.module-card {
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.03);
+}
+.recorder-card {
+  background: linear-gradient(135deg, #fff7e8 0%, #fff1d6 100%);
+  border: 1px solid rgba(255, 166, 0, 0.18);
+}
+.global-status {
+  text-align: center;
+}
+.status-indicator {
+  font-size: 14px;
+  font-weight: bold;
+  margin-bottom: 12px;
+}
+.dot {
+  font-size: 18px;
+  margin-right: 4px;
+}
+.main-message {
+  font-size: 22px;
+  font-weight: 900;
+  color: #111;
+}
+.module-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: #555;
+  margin-bottom: 16px;
+  border-bottom: 2px solid #f9f9f9;
+  padding-bottom: 10px;
+}
+.monitor-img {
+  width: 100%;
+  height: 220px;
+  border-radius: 12px;
+  background-color: #eee;
+}
+.chat-row {
+  font-size: 16px;
+  line-height: 1.6;
+  margin-bottom: 14px;
+}
+.chat-label {
+  font-weight: 900;
+}
+.user-row .chat-label {
+  color: #07c160;
+}
+.ai-row .chat-label {
+  color: #ff9800;
+}
+.steps-area {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 2px dashed #eee;
+}
+.steps-title {
+  font-size: 14px;
+  font-weight: bold;
+  color: #888;
+  margin-bottom: 10px;
+}
+.step-item {
+  font-size: 14px;
+  color: #444;
+  margin-bottom: 6px;
+}
+.play-btn {
+  border-radius: 12px !important;
+  font-weight: bold;
+  background-color: #07c160 !important;
+}
+.record-hint {
+  text-align: center;
+  font-size: 14px;
+  color: #8a6a2f;
+  margin-bottom: 14px;
+}
+.record-hint.recording {
+  color: #c62828;
+  font-weight: 700;
+}
+.record-btn {
+  height: 52px;
+  line-height: 52px;
+  border-radius: 14px !important;
+  font-size: 18px;
+  font-weight: 800;
+  color: #ffffff !important;
+  background: linear-gradient(135deg, #ff8f00 0%, #ff5a36 100%) !important;
+  border: none !important;
+  box-shadow: 0 10px 20px rgba(255, 106, 54, 0.22);
+}
+.record-btn.recording {
+  background: linear-gradient(135deg, #d32f2f 0%, #ff7043 100%) !important;
+}

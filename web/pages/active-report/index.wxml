@@ -1,0 +1,43 @@
+<view class="report-page" wx:if="{{report}}">
+  <view class="report-hero">
+    <view class="report-tag">{{report.resultTag}}</view>
+    <view class="report-title">{{report.title}}</view>
+    <view class="report-subtitle">{{report.startedAt}} · {{report.durationLabel}}</view>
+  </view>
+
+  <view class="report-panel metrics-panel">
+    <view class="panel-title">关键参数</view>
+    <view class="metrics-row">
+      <block wx:for="{{report.metrics}}" wx:key="label">
+        <view class="report-metric">
+          <view class="report-metric-value">{{item.value}}{{item.unit}}</view>
+          <view class="report-metric-label">{{item.label}}</view>
+        </view>
+      </block>
+    </view>
+  </view>
+
+  <view class="report-panel">
+    <view class="panel-title">波形摘要占位</view>
+    <view class="wave-grid">
+      <block wx:for="{{report.waveformMoments}}" wx:key="label">
+        <view class="wave-col">
+          <view class="wave-bar-shell">
+            <view class="wave-bar" style="height: {{item.value}}rpx"></view>
+          </view>
+          <view class="wave-label">{{item.label}}</view>
+        </view>
+      </block>
+    </view>
+  </view>
+
+  <view class="report-panel">
+    <view class="panel-title">报告内容</view>
+    <block wx:for="{{report.reportSections}}" wx:key="heading">
+      <view class="section-block">
+        <view class="section-heading">{{item.heading}}</view>
+        <view class="section-text">{{item.text}}</view>
+      </view>
+    </block>
+  </view>
+</view>

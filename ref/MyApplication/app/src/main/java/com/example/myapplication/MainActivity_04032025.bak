@@ -1,0 +1,1115 @@
+﻿package com.example.myapplication
+
+import android.Manifest
+import android.annotation.SuppressLint
+import android.bluetooth.*
+import android.bluetooth.le.ScanCallback
+import android.bluetooth.le.ScanResult
+import android.content.Context
+import android.content.pm.PackageManager
+import android.media.AudioAttributes
+import android.media.AudioFormat
+import android.media.AudioTrack
+import android.media.AudioRecord
+import android.media.MediaRecorder
+import java.io.ByteArrayOutputStream
+import android.view.MotionEvent
+
+import android.os.Build
+import android.os.Bundle
+import android.util.Log
+import android.widget.Button
+import android.widget.LinearLayout
+import android.widget.TextView
+import android.widget.SeekBar
+import android.widget.ToggleButton
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
+import java.util.UUID
+import okhttp3.*
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okio.ByteString.Companion.toByteString
+import com.google.gson.Gson
+import com.google.gson.JsonObject
+import org.json.JSONObject
+import java.io.IOException
+import java.util.concurrent.TimeUnit
+import android.media.MediaPlayer
+import java.io.File
+import java.io.FileOutputStream
+import android.util.Base64
+import android.os.Handler
+import android.os.Looper
+
+class MainActivity : AppCompatActivity() {
+    private val bleWriteSemaphore = java.util.concurrent.Semaphore(1)
+
+    var hardwareVolumeMultiplier = 1.0f
+
+    private lateinit var tvStatus: TextView
+    private lateinit var btnScan: Button
+    private lateinit var llDeviceList: LinearLayout
+    private lateinit var tvImuData: TextView
+    private lateinit var tvAudioData: TextView
+    private lateinit var tbPlayAudio: ToggleButton
+
+    // AI Views
+    private lateinit var tvAiStatus: TextView
+    private lateinit var tvUserVoice: TextView
+    private lateinit var tvAiReply: TextView
+    private lateinit var ivCamera: android.widget.ImageView
+    private lateinit var tabPool: android.widget.Button
+    private lateinit var tabDebug: android.widget.Button
+    private lateinit var poolView: android.view.View
+    private lateinit var debugScroll: android.view.View
+    private lateinit var helpDetailView: android.view.View
+    private lateinit var btnBackToPool: android.widget.Button
+
+    // Camera Image Buffer
+    private val imageBuffer = java.io.ByteArrayOutputStream()
+
+    private var isScanning = false
+    private var bluetoothAdapter: BluetoothAdapter? = null
+    private var bluetoothGatt: BluetoothGatt? = null
+    private val foundDevices = mutableListOf<BluetoothDevice>()
+
+    // Bluetooth Service & Characteristics
+    private val SERVICE_UUID = UUID.fromString("19B10000-E8F2-537E-4F6C-D104768A1214")
+    private val IMU_CHAR_UUID = UUID.fromString("19B10001-E8F2-537E-4F6C-D104768A1214")
+    private val MIC_AUDIO_CHAR_UUID = UUID.fromString("19B10002-E8F2-537E-4F6C-D104768A1214")
+    private val SPK_AUDIO_CHAR_UUID = UUID.fromString("19B10003-E8F2-537E-4F6C-D104768A1214")
+    private val CAM_IMAGE_CHAR_UUID = UUID.fromString("19B10004-E8F2-537E-4F6C-D104768A1214")
+    private val CCCD_UUID = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb")
+
+    // AI Constants & Status
+    private val ALIYUN_KEY = "sk-2dde2d428b5f4871bb90ad450ae4a515"
+    private val ZHIPU_KEY = "6781c79d4db14ec2bb75853a91352491.opzn28MO3bY2dho1"
+
+    private var isRecordingLocal = false
+    private var isAIThinking = false
+    @Volatile private var isInterrupted = false
+    private var interruptFrames = 0
+    private var hasGreeted = false
+    private val audioBufferQueue = java.util.concurrent.CopyOnWriteArrayList<ByteArray>()
+    private var silenceHandler = Handler(Looper.getMainLooper())
+    private var silenceRunnable: Runnable? = null
+    
+    private val okHttpClient = OkHttpClient.Builder()
+        .readTimeout(60, TimeUnit.SECONDS)
+        .build()
+    private var aliyunWebSocket: WebSocket? = null
+    
+    private val historyLog = mutableListOf<Pair<String, String>>()
+    private var mediaPlayer: MediaPlayer? = null
+
+    // Stats
+    private var totalAudioBytes = 0L
+    private var lastUiUpdateTime = 0L
+
+    // Audio Player
+    private var audioTrack: AudioTrack? = null
+    private var isPlayingAudio = false
+    private var pttAudioRecord: AudioRecord? = null
+    private var isRecordingPtt = false
+    private val pttAudioBuffer = ByteArrayOutputStream()
+
+
+
+    // Buffer to avoid AudioTrack underflow choppiness
+    private val playbackBuffer = java.io.ByteArrayOutputStream()
+    private val audioExecutor = java.util.concurrent.ThreadPoolExecutor(
+        1, 1, 0L, java.util.concurrent.TimeUnit.MILLISECONDS,
+        java.util.concurrent.LinkedBlockingQueue<Runnable>()
+    )
+    private val MIN_BUFFER_SIZE_THRESHOLD = 3200 // 16kHz 16bit = 32000 bytes/sec. 3200 bytes = 100ms
+
+    private val requestPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val allGranted = permissions.entries.all { it.value }
+        if (allGranted) {
+            tvStatus.text = "权限已授予，准备就绪"
+        } else {
+            tvStatus.text = "没有蓝牙权限"
+        }
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_main)
+
+        tvStatus = findViewById(R.id.tvStatus)
+        btnScan = findViewById(R.id.btnScan)
+        val btnPushToTalk: Button = findViewById(R.id.btnPushToTalk)
+        btnPushToTalk.setOnTouchListener { _, event ->
+            when (event.action) {
+                MotionEvent.ACTION_DOWN -> {
+                    btnPushToTalk.text = "录音中..."
+                    startPttRecording()
+                    true
+                }
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    btnPushToTalk.text = "按住录音，松开发送"
+                    stopPttRecordingAndSend()
+                    true
+                }
+                else -> false
+            }
+        }
+
+        llDeviceList = findViewById(R.id.llDeviceList)
+        tvImuData = findViewById(R.id.tvImuData)
+        tvAudioData = findViewById(R.id.tvAudioData)
+        tbPlayAudio = findViewById(R.id.tbPlayAudio)
+
+        tvAiStatus = findViewById(R.id.tvAiStatus)
+        tvUserVoice = findViewById(R.id.tvUserVoice)
+        tvAiReply = findViewById(R.id.tvAiReply)
+        ivCamera = findViewById(R.id.ivCamera)
+
+        // Inject Tab UI Variables
+        tabPool = findViewById(R.id.tab_pool)
+        tabDebug = findViewById(R.id.tab_debug)
+        poolView = findViewById(R.id.pool_view)
+        debugScroll = findViewById(R.id.debug_scroll)
+        helpDetailView = findViewById(R.id.help_detail_view)
+        btnBackToPool = findViewById(R.id.btn_back_to_pool)
+
+        tabPool.setOnClickListener {
+            poolView.visibility = android.view.View.VISIBLE
+            debugScroll.visibility = android.view.View.GONE
+            helpDetailView.visibility = android.view.View.GONE
+            tabPool.setBackgroundColor(ContextCompat.getColor(this, android.R.color.darker_gray))
+            tabDebug.setBackgroundColor(ContextCompat.getColor(this, android.R.color.transparent))
+        }
+
+        tabDebug.setOnClickListener {
+            poolView.visibility = android.view.View.GONE
+            debugScroll.visibility = android.view.View.VISIBLE
+            helpDetailView.visibility = android.view.View.GONE
+            tabDebug.setBackgroundColor(ContextCompat.getColor(this, android.R.color.darker_gray))
+            tabPool.setBackgroundColor(ContextCompat.getColor(this, android.R.color.transparent))
+        }
+
+        btnBackToPool.setOnClickListener {
+            helpDetailView.visibility = android.view.View.GONE
+            poolView.visibility = android.view.View.VISIBLE
+            debugScroll.visibility = android.view.View.GONE
+        }
+
+        // Auto select debug or pool
+        tabPool.performClick()
+
+        requestBlePermissions()
+        initAudioTrack()
+
+        val bluetoothManager = getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
+        bluetoothAdapter = bluetoothManager.adapter
+
+        
+        val seekBarVolume = findViewById<SeekBar>(R.id.seekBarVolume)
+        val tvVolumeVal = findViewById<TextView>(R.id.tvVolumeVal)
+        seekBarVolume.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                var scaled = progress / 10.0f
+                if (scaled < 0.1f) scaled = 0.1f
+                hardwareVolumeMultiplier = scaled
+                tvVolumeVal.text = String.format("%.1fx", hardwareVolumeMultiplier)
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+        })
+
+        // Auto scan on start
+        Handler(Looper.getMainLooper()).postDelayed({ startScan() }, 1000)
+
+        // Auto scan on start
+        Handler(Looper.getMainLooper()).postDelayed({ startScan() }, 1000)
+
+        btnScan.setOnClickListener {
+            if (!isScanning) startScan() else stopScan()
+        }
+
+        tbPlayAudio.setOnCheckedChangeListener { _, isChecked ->
+            isPlayingAudio = isChecked
+            if (isChecked) {
+                playbackBuffer.reset()
+                if (audioTrack?.playState != AudioTrack.PLAYSTATE_PLAYING) {
+                    audioTrack?.play()
+                }
+            } else {
+                audioTrack?.pause()
+                audioTrack?.flush()
+            }
+        }
+    }
+
+    private fun initAudioTrack() {
+        val sampleRate = 16000
+        val channelConfig = AudioFormat.CHANNEL_OUT_MONO
+        val audioFormat = AudioFormat.ENCODING_PCM_16BIT
+        val bufferSize = AudioTrack.getMinBufferSize(sampleRate, channelConfig, audioFormat)
+
+        audioTrack = AudioTrack.Builder()
+            .setAudioAttributes(
+                AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_MEDIA)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                    .build()
+            )
+            .setAudioFormat(
+                AudioFormat.Builder()
+                    .setEncoding(audioFormat)
+                    .setSampleRate(sampleRate)
+                    .setChannelMask(channelConfig)
+                    .build()
+            )
+            // Use streaming mode but with a decently sized underlying buffer
+            .setBufferSizeInBytes(bufferSize)
+            .setTransferMode(AudioTrack.MODE_STREAM)
+            .build()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        audioTrack?.release()
+        audioTrack = null
+        @SuppressLint("MissingPermission")
+        bluetoothGatt?.close()
+    }
+
+    private fun requestBlePermissions() {
+        // ... (permissions code remains the same)
+        val permissions = mutableListOf(
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.ACCESS_COARSE_LOCATION
+        ,
+            Manifest.permission.RECORD_AUDIO
+        )
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            permissions.add(Manifest.permission.BLUETOOTH_SCAN)
+            permissions.add(Manifest.permission.BLUETOOTH_CONNECT)
+        } else {
+            permissions.add(Manifest.permission.BLUETOOTH)
+            permissions.add(Manifest.permission.BLUETOOTH_ADMIN)
+        }
+
+        val missingPermissions = permissions.filter {
+            ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
+        }
+
+        if (missingPermissions.isNotEmpty()) {
+            requestPermissionLauncher.launch(missingPermissions.toTypedArray())
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun startScan() {
+        if (bluetoothAdapter == null || !bluetoothAdapter!!.isEnabled) {
+            tvStatus.text = "请先打开手机蓝牙"
+            return
+        }
+        foundDevices.clear()
+        llDeviceList.removeAllViews()
+        lastUiUpdateTime = System.currentTimeMillis()
+        totalAudioBytes = 0
+        tvAudioData.text = "Audio 收包统计: 0 bytes"
+        bluetoothAdapter?.bluetoothLeScanner?.startScan(scanCallback)
+        isScanning = true
+        btnScan.text = "停止扫描"
+        tvStatus.text = "正在扫描�?.."
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun stopScan() {
+        bluetoothAdapter?.bluetoothLeScanner?.stopScan(scanCallback)
+        isScanning = false
+        btnScan.text = "扫描蓝牙设备"
+    }
+
+    private val scanCallback = object : ScanCallback() {
+        @SuppressLint("MissingPermission")
+        override fun onScanResult(callbackType: Int, result: ScanResult) {
+            val device = result.device
+            val name = device.name ?: "Unknown"
+
+            if (name.contains("MBF") && !foundDevices.any { it.address == device.address }) {
+                // Auto connect to this device
+                runOnUiThread { tvStatus.text = "发现 ，自动连接中..." }
+                stopScan()
+                connectToDevice(device)
+
+                // Auto connect to this device
+                runOnUiThread { tvStatus.text = "发现 ，自动连接中..." }
+                stopScan()
+                connectToDevice(device)
+
+                foundDevices.add(device)
+                val deviceLayout = LinearLayout(this@MainActivity).apply { orientation = LinearLayout.VERTICAL; setPadding(0, 16, 0, 16) }
+                val tvInfo = TextView(this@MainActivity).apply { text = "发现: $name\nMAC: ${device.address}"; textSize = 18f }
+                val btnConnect = Button(this@MainActivity).apply {
+                    text = "连接设备"
+                    setOnClickListener { stopScan(); connectToDevice(device) }
+                }
+                deviceLayout.addView(tvInfo)
+                deviceLayout.addView(btnConnect)
+                llDeviceList.addView(deviceLayout)
+            }
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun connectToDevice(device: BluetoothDevice) {
+        tvStatus.text = "正在连接 ${device.name}..."
+        bluetoothGatt = device.connectGatt(this, false, gattCallback)
+    }
+
+    private val gattCallback = object : BluetoothGattCallback() {
+        @SuppressLint("MissingPermission")
+        override fun onConnectionStateChange(gatt: BluetoothGatt, status: Int, newState: Int) {
+            if (newState == BluetoothProfile.STATE_CONNECTED) {
+                hasGreeted = false
+                runOnUiThread { tvStatus.text = "已连接！正在请求 MTU..." }
+                // 请求变更 MTU，成功后会在 onMtuChanged 里去 discoverServices
+                gatt.requestMtu(512)
+            } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
+                runOnUiThread { tvStatus.text = "连接断开，正在重新扫描..." }
+                Handler(Looper.getMainLooper()).postDelayed({ startScan() }, 2000)
+            }
+        }
+
+        @SuppressLint("MissingPermission", "NewApi")
+        override fun onMtuChanged(gatt: BluetoothGatt, mtu: Int, status: Int) {
+            super.onMtuChanged(gatt, mtu, status)
+            android.util.Log.i("BLE_DEBUG", "MTU changed to: " + mtu + "\", Status: " + status)
+
+            // 收到 MTU 后再请求高优先级，提升吞吐
+            gatt.requestConnectionPriority(BluetoothGatt.CONNECTION_PRIORITY_HIGH)
+            
+            // 稍微延迟一下等待底层状态稳定
+            Thread.sleep(100)
+            runOnUiThread { tvStatus.text = "MTU 协商成功！发现服务..." }
+            gatt.discoverServices()
+        }
+
+        override fun onServicesDiscovered(gatt: BluetoothGatt, status: Int) {
+            if (status == BluetoothGatt.GATT_SUCCESS) {
+                runOnUiThread { tvStatus.text = "服务发现成功，准备订阅流..." }
+                val service = gatt.getService(SERVICE_UUID)
+                if (service != null) {
+                    val imuChar = service.getCharacteristic(IMU_CHAR_UUID)
+                    if (imuChar != null) {
+                        gatt.setCharacteristicNotification(imuChar, true)
+                        val descriptor = imuChar.getDescriptor(CCCD_UUID)
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            gatt.writeDescriptor(descriptor, BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE)
+                        } else {
+                            descriptor.value = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
+                            gatt.writeDescriptor(descriptor)
+                        }
+                    }
+                }
+            }
+        }
+
+        @SuppressLint("MissingPermission", "NewApi")
+        override fun onDescriptorWrite(gatt: BluetoothGatt, descriptor: BluetoothGattDescriptor, status: Int) {
+            if (status == BluetoothGatt.GATT_SUCCESS) {
+                if (descriptor.characteristic.uuid == IMU_CHAR_UUID) {
+                    val audioChar = gatt.getService(SERVICE_UUID)?.getCharacteristic(MIC_AUDIO_CHAR_UUID)
+                    if (audioChar != null) {
+                        gatt.setCharacteristicNotification(audioChar, true)
+                        val audioDec = audioChar.getDescriptor(CCCD_UUID)
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            gatt.writeDescriptor(audioDec, BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE)
+                        } else {
+                            audioDec.value = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
+                            gatt.writeDescriptor(audioDec)
+                        }
+                        runOnUiThread { tvStatus.text = "已成功订阅雷达与音频数据流！" }
+                    }
+                } else if (descriptor.characteristic.uuid == MIC_AUDIO_CHAR_UUID) {
+                    val camChar = gatt.getService(SERVICE_UUID)?.getCharacteristic(CAM_IMAGE_CHAR_UUID)
+                    if (camChar != null) {
+                        gatt.setCharacteristicNotification(camChar, true)
+                        val camDec = camChar.getDescriptor(CCCD_UUID)
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            gatt.writeDescriptor(camDec, BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE)
+                        } else {
+                            camDec.value = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
+                            gatt.writeDescriptor(camDec)
+                        }
+                        runOnUiThread { tvStatus.text = "Camera Data" }
+                    }
+                // Trigger auto greet when camera descriptor is configured
+                if (!hasGreeted) {
+                    hasGreeted = true
+                    runOnUiThread { tvStatus.text = "设备就绪！AI 准备中..." }
+                    isAIThinking = true
+                    historyLog.clear()
+                    callLLMForReply("系统指令：请用一句非常简短、随和的口语向用户打招呼，比如直接问现在要做什么？或接下来我们干点啥？。绝对不要出现拆解任务、系统指令、好的等书面或AI感的话。")
+                }
+
+                }
+            }
+        }
+
+        override fun onCharacteristicWrite(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic, status: Int) {
+
+
+            if (characteristic.uuid == SPK_AUDIO_CHAR_UUID) {
+
+
+                bleWriteSemaphore.release()
+
+
+            }
+
+
+        }
+
+
+
+        override fun onCharacteristicChanged(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic, value: ByteArray) {
+            handleCharacteristicChange(characteristic.uuid, value)
+        }
+
+        override fun onCharacteristicChanged(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic) {
+            if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.TIRAMISU) {
+                handleCharacteristicChange(characteristic.uuid, characteristic.value)
+            }
+        }
+
+        private var lastCamData: ByteArray = ByteArray(0)
+        private var lastAudioData: ByteArray = ByteArray(0)
+
+        private fun handleCharacteristicChange(uuid: UUID, data: ByteArray) {
+            if (uuid == IMU_CHAR_UUID) {
+                if (data.size >= 8) {
+                    val buffer = ByteBuffer.wrap(data).order(ByteOrder.LITTLE_ENDIAN)
+                    val x = buffer.float 
+                    val y = buffer.float 
+                    val mag = Math.sqrt((x * x + y * y).toDouble())
+
+                    val now = System.currentTimeMillis()
+                    if (now - lastUiUpdateTime > 100) {
+                        lastUiUpdateTime = now
+                        runOnUiThread {
+                            tvImuData.text = String.format("IMU 实时数据: X=%.2f, Y=%.2f (Mg=%.2f)", x, y, mag)
+                        }
+                    }
+                }
+            } else if (uuid == CAM_IMAGE_CHAR_UUID) {
+                if (data.contentEquals(lastCamData)) {
+                    return
+                }
+                lastCamData = data.clone()
+
+                if (data.size >= 2 && (data[0].toInt() and 0xFF) == 0xFF && (data[1].toInt() and 0xFF) == 0xD8) {
+                    imageBuffer.reset()
+                    runOnUiThread { tvStatus.text = " 正在接入镜头..." }
+                }
+
+                if (imageBuffer.size() > 0 || (data.size >= 2 && (data[0].toInt() and 0xFF) == 0xFF && (data[1].toInt() and 0xFF) == 0xD8)) {
+                    imageBuffer.write(data)
+                } else {
+                    return
+                }
+
+                val bufferData = imageBuffer.toByteArray()
+                if (bufferData.size % 1000 < 250) {
+                    runOnUiThread { tvStatus.text = "图像接收中: " + bufferData.size + " B" }
+                }
+
+                if (bufferData.size >= 2 && (bufferData[bufferData.size - 2].toInt() and 0xFF) == 0xFF && (bufferData[bufferData.size - 1].toInt() and 0xFF) == 0xD9) {
+                    runOnUiThread {
+                        val bitmap = android.graphics.BitmapFactory.decodeByteArray(bufferData, 0, bufferData.size)
+                        if (bitmap != null) {
+                            ivCamera.setImageBitmap(bitmap)
+                        }
+                    }
+                    imageBuffer.reset()
+                }
+            } else if (uuid == MIC_AUDIO_CHAR_UUID) {
+                if (data.contentEquals(lastAudioData)) {
+                    return
+                }
+                lastAudioData = data.clone()
+
+                totalAudioBytes += data.size
+
+                // 1. Send to Local Hardware Playback (Native 16-bit PCM)
+                  if (isPlayingAudio && !isAIThinking) {
+                      try {
+                          playbackBuffer.write(data)
+                          if (playbackBuffer.size() >= MIN_BUFFER_SIZE_THRESHOLD) {
+                              val playbackArray = playbackBuffer.toByteArray()
+                              playbackBuffer.reset()
+                              
+                              if (audioExecutor.queue.size > 2) { audioExecutor.queue.clear(); try { audioTrack?.pause(); audioTrack?.flush(); audioTrack?.play(); } catch(e: Exception){} } 
+                              audioExecutor.execute {
+                                    try {
+                                        if (audioTrack?.playState != android.media.AudioTrack.PLAYSTATE_PLAYING) {
+                                            audioTrack?.play()
+                                        }
+                                        audioTrack?.write(playbackArray, 0, playbackArray.size)
+                                  } catch (e: Exception) {
+                                      e.printStackTrace()
+                                  }
+                              }
+                          }
+                      } catch (e: Exception) {
+                          e.printStackTrace()
+                      }
+                  }
+
+                // 1.5 Interrupt Logic (User talks while AI plays/thinks)
+                if (isAIThinking || mediaPlayer?.isPlaying == true) {
+                    var maxEnergy = 0
+                    val shortBuffer = java.nio.ByteBuffer.wrap(data).order(java.nio.ByteOrder.LITTLE_ENDIAN).asShortBuffer()
+                    while (shortBuffer.hasRemaining()) {
+                        val energy = Math.abs(shortBuffer.get().toInt())
+                        if (energy > maxEnergy) maxEnergy = energy
+                    }
+                    if (maxEnergy > 2000) {
+                        interruptFrames++
+                        if (interruptFrames > 4) {
+                            android.util.Log.i("AI_DEBUG", "INTERRUPT TRIGGERED!")
+                            isInterrupted = true
+                            try { mediaPlayer?.stop(); mediaPlayer?.release(); mediaPlayer = null } catch(e:Exception){}
+                            isPlayingAudio = false
+                            isAIThinking = false
+                            try { aliyunWebSocket?.cancel() } catch (e: Exception) {}
+
+                            runOnUiThread { tvAiStatus.text = "🚫已打断AI，重新倾听中..." }
+
+                            isRecordingLocal = true
+                            audioBufferQueue.clear()
+                            interruptFrames = 0
+                        }
+                    } else {
+                        if (interruptFrames > 0) interruptFrames--
+                    }
+                }
+
+                // 2. 16-bit VAD AI Logic
+                if (!isAIThinking && mediaPlayer?.isPlaying != true) {
+                    var maxEnergy = 0
+                    val shortBuffer = java.nio.ByteBuffer.wrap(data).order(java.nio.ByteOrder.LITTLE_ENDIAN).asShortBuffer()
+                    while (shortBuffer.hasRemaining()) {
+                        val energy = Math.abs(shortBuffer.get().toInt())
+                        if (energy > maxEnergy) maxEnergy = energy
+                    }
+
+                    if (maxEnergy > 2000) {
+                        if (!isRecordingLocal) {
+                            Log.i("AI_DEBUG", "VAD trigger start")
+                            isRecordingLocal = true
+                            runOnUiThread { tvAiStatus.text = "🎙�?正在录音... (安静1.5秒发�?" }
+                        }
+                        audioBufferQueue.add(data)
+                        
+                        silenceRunnable?.let { silenceHandler.removeCallbacks(it) }
+                        silenceRunnable = Runnable {
+                            Log.i("AI_DEBUG", "VAD trigger silence end")
+                            isRecordingLocal = false
+                            isAIThinking = true
+                            playbackBuffer.reset()
+            try { mediaPlayer?.stop(); mediaPlayer?.release(); mediaPlayer = null } catch(e:Exception){}
+            audioTrack?.pause()
+            audioTrack?.flush()
+                            if (isPlayingAudio) audioTrack?.play()
+                            runOnUiThread { tvAiStatus.text = "�?打包上传音频推给 STT �?.." }
+                            processAndUploadAudio()
+                        }
+                        silenceHandler.postDelayed(silenceRunnable!!, 1500)
+                    } else {
+                        if (isRecordingLocal) {
+                            audioBufferQueue.add(data)
+                        }
+                    }
+                }
+                
+                val now = System.currentTimeMillis()
+                if (now - lastUiUpdateTime > 50) { 
+                    val hexPreview = data.take(3).joinToString(" ") { String.format("%02X", it) } + "..."
+                    val textToSet = "Audio 收包统计: " + totalAudioBytes + " Bytes\n最新包: [" + hexPreview + "]"
+                    runOnUiThread { tvAudioData.text = textToSet }
+                }
+            }
+        }
+    }
+
+    
+    
+
+
+
+
+
+
+    private fun streamPcmToEsp32(audioBytes: ByteArray) {
+        Thread {
+            val gatt = bluetoothGatt
+            val service = gatt?.getService(SERVICE_UUID)
+            val spkChar = service?.getCharacteristic(SPK_AUDIO_CHAR_UUID)
+
+            if (gatt != null && spkChar != null && audioBytes.isNotEmpty()) {
+                // 💡 鸿蒙最终杀手锏 V4：底层协议栈硬件流控回调 (Strict Flow Control)
+                val chunkSize = 400 // 每包25ms数据，显著降低系统调用频率，充分利用 512 MTU
+                var offset = 0
+                
+                // 发送流之前清空可能废弃的信号量，并给第一发开绿灯
+                bleWriteSemaphore.drainPermits()
+                bleWriteSemaphore.release()
+                isInterrupted = false
+
+                while (offset < audioBytes.size) {
+                    if (isInterrupted) {
+                        android.util.Log.i("BLE_DEBUG", "stream aborted due to interrupt")
+                        break
+                    }
+                    var length = Math.min(chunkSize, audioBytes.size - offset)
+                    if (length % 2 != 0) length -= 1
+                    if (length <= 0) break
+
+                    val chunk = ByteArray(length)
+                    System.arraycopy(audioBytes, offset, chunk, 0, length) 
+
+                    if (hardwareVolumeMultiplier != 1.0f) {
+                        val shortBuffer = java.nio.ByteBuffer.wrap(chunk).order(java.nio.ByteOrder.LITTLE_ENDIAN).asShortBuffer()
+                        val shortArray = ShortArray(shortBuffer.capacity())
+                        shortBuffer.get(shortArray)
+                        for (i in shortArray.indices) {
+                            var v = (shortArray[i] * hardwareVolumeMultiplier).toInt()
+                            if (v > 32767) v = 32767
+                            if (v < -32768) v = -32768
+                            shortArray[i] = v.toShort()
+                        }
+                        java.nio.ByteBuffer.wrap(chunk).order(java.nio.ByteOrder.LITTLE_ENDIAN).asShortBuffer().put(shortArray)
+                    }
+
+                    spkChar.value = chunk
+                    // NO_RESPONSE + Semaphore 是 Android 蓝牙高吞吐防丢包最完美的解法
+                    spkChar.writeType = BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
+                    
+                    try {
+                        // 强制等待上一个包真正离开手机底层发射队列。
+                        bleWriteSemaphore.tryAcquire(200, java.util.concurrent.TimeUnit.MILLISECONDS)
+
+                        @SuppressLint("MissingPermission")
+                        val result = gatt.writeCharacteristic(spkChar)
+                        if (!result) {
+                            // 若底层低功耗蓝牙缓存满了发不出去：释放permit，歇一会儿，并用 continue 阻止 offset 增加，达到重发同一包的目的，彻底告别丢包/快进死循环！
+                            bleWriteSemaphore.release()
+                            Thread.sleep(5)
+                            continue
+                        }
+                    } catch (e: Exception) {
+                        android.util.Log.e("BLE_DEBUG", "Error writing chunk: " + e.message)
+                        bleWriteSemaphore.release()
+                    }
+
+                    offset += length
+                }
+                android.util.Log.i("BLE_DEBUG", "Sent PCM to ESP32 (HarmonyOS Strict Flow-Control V4 Mode).")
+            }
+        }.start()
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun startPttRecording() {
+        if (androidx.core.content.ContextCompat.checkSelfPermission(this, android.Manifest.permission.RECORD_AUDIO) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            return
+        }
+        
+        android.util.Log.i("AI_DEBUG", "User Pressed PTT! Interrupting AI.")
+        isInterrupted = true
+        try { mediaPlayer?.stop(); mediaPlayer?.release(); mediaPlayer = null } catch(e:Exception){}
+        try { aliyunWebSocket?.cancel() } catch (e: Exception) {}
+        isPlayingAudio = false
+        isAIThinking = false
+        runOnUiThread { tvAiStatus.text = "🚫用户按键，直接倾听..." }
+
+        val minBufSize = android.media.AudioRecord.getMinBufferSize(16000, android.media.AudioFormat.CHANNEL_IN_MONO, android.media.AudioFormat.ENCODING_PCM_16BIT)
+        pttAudioRecord = android.media.AudioRecord(android.media.MediaRecorder.AudioSource.MIC, 16000, android.media.AudioFormat.CHANNEL_IN_MONO, android.media.AudioFormat.ENCODING_PCM_16BIT, minBufSize * 2)
+        pttAudioBuffer.reset()
+        isRecordingPtt = true
+        pttAudioRecord?.startRecording()
+        Thread {
+            val buffer = ByteArray(minBufSize)
+            while (isRecordingPtt) {
+                val read = pttAudioRecord?.read(buffer, 0, buffer.size) ?: 0
+                if (read > 0) {
+                    pttAudioBuffer.write(buffer, 0, read)
+                }
+            }
+        }.start()
+    }
+
+    private fun stopPttRecordingAndSend() {
+        isRecordingPtt = false
+        pttAudioRecord?.stop()
+        pttAudioRecord?.release()
+        pttAudioRecord = null
+        val recordedBytes = pttAudioBuffer.toByteArray()
+        if (recordedBytes.isNotEmpty()) {
+            streamPcmToEsp32(recordedBytes)
+        }
+    }
+
+    private fun processAndUploadAudio() {
+        if (audioBufferQueue.isEmpty()) {
+            resetAI()
+            return
+        }
+
+        // Restore original fast push logic without downsampling
+          
+          var originalLength = 0
+          for (chunk in audioBufferQueue) {
+              originalLength += chunk.size
+          }
+          val dataLength = originalLength // For 16-bit mono
+
+          val bufferSize = 44 + dataLength
+          val headerExtBuffer = java.nio.ByteBuffer.allocate(bufferSize).order(java.nio.ByteOrder.LITTLE_ENDIAN)
+
+          headerExtBuffer.put("RIFF".toByteArray())
+          headerExtBuffer.putInt(36 + dataLength)
+          headerExtBuffer.put("WAVE".toByteArray())
+          headerExtBuffer.put("fmt ".toByteArray())
+          headerExtBuffer.putInt(16)
+          headerExtBuffer.putShort(1) // PCM
+          headerExtBuffer.putShort(1) // 1 channel
+          headerExtBuffer.putInt(16000) // Sample rate
+          headerExtBuffer.putInt(16000 * 1 * 2) // Byte rate
+          headerExtBuffer.putShort(2) // Block align
+          headerExtBuffer.putShort(16) // Bits per sample
+          headerExtBuffer.put("data".toByteArray())
+          headerExtBuffer.putInt(dataLength)
+
+          for (chunk in audioBufferQueue) {
+              headerExtBuffer.put(chunk) // Already native 16-bit PCM bytes     
+          }
+
+          audioBufferQueue.clear()
+          val finalWavBytes = headerExtBuffer.array()
+          uploadToRealAI(finalWavBytes)
+    }
+
+    private fun uploadToRealAI(audioData: ByteArray) {
+        val taskId = "task_" + System.currentTimeMillis() + (Math.random() * 1000).toInt()
+        val request = Request.Builder()
+            .url("wss://dashscope.aliyuncs.com/api-ws/v1/inference/")
+            .addHeader("Authorization", "Bearer " + ALIYUN_KEY)
+            .build()
+            
+        var finalStr = ""
+        
+        aliyunWebSocket = okHttpClient.newWebSocket(request, object : WebSocketListener() {
+            override fun onOpen(webSocket: WebSocket, response: Response) {
+                val runTaskCmd = "{\"header\":{\"action\":\"run-task\",\"task_id\":\"" + taskId + "\",\"streaming\":\"duplex\"},\"payload\":{\"task_group\":\"audio\",\"task\":\"asr\",\"function\":\"recognition\",\"model\":\"paraformer-realtime-v1\",\"parameters\":{\"format\":\"wav\",\"sample_rate\":16000},\"input\":{}}}"
+                webSocket.send(runTaskCmd)
+            }
+
+            override fun onMessage(webSocket: WebSocket, text: String) {
+                try {
+                    val jsonObj = JSONObject(text)
+                    val header = jsonObj.getJSONObject("header")
+                    val event = header.getString("event")
+                    
+                    if (event == "task-started") {
+                        webSocket.send(audioData.toByteString())
+                        Thread.sleep(200)
+                        webSocket.send("{\"header\":{\"action\":\"finish-task\",\"task_id\":\"" + taskId + "\",\"streaming\":\"duplex\"},\"payload\":{\"input\":{}}}")
+                    } else if (event == "result-generated") {
+                        val outObj = jsonObj.optJSONObject("payload")?.optJSONObject("output")?.optJSONObject("sentence")
+                        if (outObj != null && outObj.has("text")) {
+                            finalStr += outObj.getString("text")
+                        }
+                    } else if (event == "task-finished") {
+                        val outObj = jsonObj.optJSONObject("payload")?.optJSONObject("output")?.optJSONObject("sentence")
+                        if (outObj != null && outObj.has("text")) {
+                            finalStr += outObj.getString("text")
+                        }
+                        webSocket.close(1000, "Done")
+                        
+                        if (finalStr.trim().isEmpty()) {
+                            Log.e("AI_DEBUG", "STT Empty result")
+                            runOnUiThread { tvAiStatus.text = "⚠️ 没听清你说啥..." }
+                            resetAI(500)
+                            return
+                        }
+                        
+                        Log.i("AI_DEBUG", "STT Success: " + finalStr)
+                        runOnUiThread { tvUserVoice.text = "�? " + finalStr; tvAiStatus.text = "🚀 STT成功，呼叫智谱大�?.." }
+                        callLLMForReply(finalStr)
+                    } else if (event == "task-failed") {
+                        Log.e("AI_DEBUG", "STT Task Fail: " + text)
+                        runOnUiThread { tvAiStatus.text = "�?STT 识别失败" }
+                        resetAI(1500)
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+            
+            override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
+                Log.e("AI_DEBUG", "STT WebSocket failed: " + t.message)
+                runOnUiThread { tvAiStatus.text = "�?STT 网络链路断开" }
+                resetAI(1500)
+            }
+        })
+    }
+
+    private fun callLLMForReply(userText: String) {
+        // 🌟 完美还原你专属的知心大姐姐 + 任务拆解 Prompt
+        val sysContent = """你现在是一个温柔、坚定、鼓励的知心大姐姐。你的核心目标是引导患有ADHD的用户行动起来。
+在对话中，你需要自然地了解两件事：1. 用户想做什么事（目标任务） 2. 用户现在的心态或身体状态（如焦虑、躺在床上等）。
+你必须只返回一个合法的 JSON 对象，绝对不要输出任何其他前后缀废话。
+必须包含以下字段：
+"reply": "你要对用户说的口语化回复（保持温柔自然，暗中引导，千万不要说你在记录数据）",
+"user_task": "提取出的任务，如果未知请输出『未知』",
+"user_state": "提取出的状态，如果未知请输出『未知』",
+"steps": ["第一步", "第二步", "第三步"] （只有在明确了任务和状态后，才为其拆解成3个极简微小动作，否则输出空数组 []）""".trimIndent()
+
+        val messagesArray = com.google.gson.JsonArray()
+        val sysMsg = JsonObject().apply { addProperty("role", "system"); addProperty("content", sysContent) }
+        messagesArray.add(sysMsg)
+
+        for (round in historyLog) {
+            val uMsg = JsonObject().apply { addProperty("role", "user"); addProperty("content", round.first) }
+            val aMsg = JsonObject().apply { addProperty("role", "assistant"); addProperty("content", round.second) }
+            messagesArray.add(uMsg)
+            messagesArray.add(aMsg)
+        }
+
+        val curMsg = JsonObject().apply { addProperty("role", "user"); addProperty("content", userText) }
+        messagesArray.add(curMsg)
+
+        val reqBodyJson = JsonObject().apply {
+            addProperty("model", "glm-4-flash")
+            add("messages", messagesArray)
+        }
+
+        val body = okhttp3.RequestBody.create("application/json".toMediaTypeOrNull(), reqBodyJson.toString())
+        val request = Request.Builder()
+            .url("https://open.bigmodel.cn/api/paas/v4/chat/completions")
+            .addHeader("Authorization", "Bearer " + ZHIPU_KEY)
+            .post(body)
+            .build()
+
+        okHttpClient.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                Log.e("AI_DEBUG", "LLM Network Error: " + e.message)
+                runOnUiThread { tvAiStatus.text = "❌ LLM 网络错误" }
+                resetAI(1500)
+            }
+
+            override fun onResponse(call: Call, response: Response) {
+                val respStr = response.body?.string() ?: ""
+                try {
+                    val jsonObj = JSONObject(respStr)
+                    val choices = jsonObj.getJSONArray("choices")
+                    var replyText = choices.getJSONObject(0).getJSONObject("message").getString("content")
+
+                    // 🛠️ 增强的 Markdown 去除逻辑（大模型极爱加这个）
+                    replyText = replyText.trim()
+                    if (replyText.startsWith("```json")) replyText = replyText.substring(7)
+                    else if (replyText.startsWith("```")) replyText = replyText.substring(3)
+                    if (replyText.endsWith("```")) replyText = replyText.substring(0, replyText.length - 3)
+                    replyText = replyText.trim()
+
+                    try {
+                        val parsed = org.json.JSONObject(replyText)
+
+                        // 🎯 字段严格匹配你的 Prompt
+                        val userTask = parsed.optString("user_task", "未知")
+                        val userState = parsed.optString("user_state", "未知")
+                        val finalReply = parsed.optString("reply", "好的")
+
+                        val stepsArr = parsed.optJSONArray("steps")
+                        val stepsList = mutableListOf<String>()
+                        if (stepsArr != null) {
+                            for (i in 0 until stepsArr.length()) stepsList.add(stepsArr.getString(i))
+                        }
+
+                        runOnUiThread {
+                            findViewById<TextView>(R.id.tvUserTask)?.let { it.text = "🎯 【当前目标】：" + userTask }
+                            findViewById<TextView>(R.id.tvUserState)?.let { it.text = "💡 【当前状态】：" + userState }
+                            findViewById<TextView>(R.id.tvActionSteps)?.let {
+                                it.text = "🪜 【行动建议】：" + if(stepsList.isEmpty()) "暂无步骤" else stepsList.joinToString(" ➔ ")
+                            }
+                            tvAiReply.text = "AI: " + finalReply
+                            tvAiStatus.text = "🔊 正在全自动生成声音(TTS)..."
+                        }
+
+                        // 将历史记录以 JSON 格式存入，方便多轮对话理解
+                        historyLog.add(Pair(userText, "{\"user_task\":\"$userTask\", \"user_state\":\"$userState\", \"reply\":\"$finalReply\"}"))
+                        if (historyLog.size > 10) historyLog.removeAt(0)
+
+                        // 把解析出的大白话交给 TTS 发音
+                        callTTSForAudio(finalReply)
+
+                    } catch (e: Exception) {
+                        // 如果 AI 偶尔抽风没返回 JSON，走兜底逻辑
+                        runOnUiThread {
+                            tvAiReply.text = "AI (Raw): " + replyText
+                            tvAiStatus.text = "🔊 正在生成声音(TTS)..."
+                        }
+                        historyLog.add(Pair(userText, replyText))
+                        if (historyLog.size > 10) historyLog.removeAt(0)
+                        callTTSForAudio(replyText)
+                    }
+                } catch (e: Exception) {
+                    Log.e("AI_DEBUG", "LLM parse failed: " + e.message + " json: " + respStr)
+                    runOnUiThread { tvAiStatus.text = "❌ LLM 解析失败" }
+                    resetAI(1500)
+                }
+            }
+        })
+    }
+
+            private fun callTTSForAudio(textToRead: String) {
+        val ttsPrompt = "请用坚定、温柔且鼓励的知心大姐姐声音，全自动朗读下面这句话，不需要加任何自己的话，直接读：\n\n" + textToRead
+        
+        val messagesArray = com.google.gson.JsonArray()
+        val contentArray = com.google.gson.JsonArray()
+        contentArray.add(JsonObject().apply {
+            addProperty("type", "text")
+            addProperty("text", ttsPrompt)
+        })
+        val uMsg = JsonObject().apply { 
+            addProperty("role", "user")
+            add("content", contentArray)
+        }
+        messagesArray.add(uMsg)
+        
+        val reqBodyJson = JsonObject().apply {
+            addProperty("model", "glm-4-voice")
+            add("messages", messagesArray)
+        }
+        
+        val body = okhttp3.RequestBody.create("application/json".toMediaTypeOrNull(), reqBodyJson.toString())
+        val request = Request.Builder()
+            .url("https://open.bigmodel.cn/api/paas/v4/chat/completions")
+            .addHeader("Authorization", "Bearer " + ZHIPU_KEY)
+            .post(body)
+            .build()
+            
+        okHttpClient.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                Log.e("AI_DEBUG", "TTS Network Err: " + e.message)
+                runOnUiThread { tvAiStatus.text = "�?TTS 网络通信错误" }
+                resetAI(1500)
+            }
+
+            override fun onResponse(call: Call, response: Response) {
+                val respStr = response.body?.string() ?: ""
+                try {
+                    val jsonObj = JSONObject(respStr)
+                    val msgObj = jsonObj.getJSONArray("choices").getJSONObject(0).getJSONObject("message")
+                    val audioData = msgObj.getJSONObject("audio").getString("data")
+                    Log.i("AI_DEBUG", "TTS Success, ready to play")
+                    runOnUiThread { tvAiStatus.text = "🎵 正在外放 AI 语音... (期间耳朵屏蔽)" }
+                    playBase64Audio(audioData)
+                } catch (e: Exception) {
+                    Log.e("AI_DEBUG", "TTS parse failed: " + e.message + " json: " + respStr)
+                    runOnUiThread { tvAiStatus.text = "�?TTS 生成失败 (可能限流或报�?" }
+                    resetAI(1500)
+                }
+            }
+        })
+    }
+
+    private fun playBase64Audio(base64Str: String) {
+        try {
+            val audioBytes = Base64.decode(base64Str, Base64.DEFAULT)
+            val tempFile = File(cacheDir, "ai_reply.wav")
+            FileOutputStream(tempFile).use { it.write(audioBytes) }
+            
+            // Play on Android
+            Handler(Looper.getMainLooper()).post {
+                mediaPlayer?.release()
+                mediaPlayer = MediaPlayer().apply {
+                    setAudioAttributes(
+                        android.media.AudioAttributes.Builder()
+                            .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SPEECH)
+                            .setUsage(android.media.AudioAttributes.USAGE_MEDIA)
+                            .build()
+                    )
+                    setVolume(1.0f, 1.0f)
+                    setDataSource(tempFile.absolutePath)
+                    prepare()
+                    start()
+                    setOnCompletionListener {
+                        Log.i("AI_DEBUG", "Audio play complete. Resetting AI.")
+                        resetAI(1000)
+                    }
+                }
+            }
+
+            
+            // Stream to ESP32 over BLE
+            if (audioBytes.size > 44) {
+                // Parse WAV Header for Sample Rate (bytes 24-27)
+                val inRate = (audioBytes[24].toInt() and 0xFF) or
+                        ((audioBytes[25].toInt() and 0xFF) shl 8) or
+                        ((audioBytes[26].toInt() and 0xFF) shl 16) or
+                        ((audioBytes[27].toInt() and 0xFF) shl 24)
+                
+                val pcmBytes = ByteArray(audioBytes.size - 44)
+                System.arraycopy(audioBytes, 44, pcmBytes, 0, pcmBytes.size)
+
+                val targetRate = 16000
+                val finalPcm = if (inRate != targetRate && inRate > 0) {
+                    android.util.Log.i("AI_DEBUG", "Downsampling TTS from \$inRate to \$targetRate")
+                    val inShorts = ShortArray(pcmBytes.size / 2)
+                    java.nio.ByteBuffer.wrap(pcmBytes).order(java.nio.ByteOrder.LITTLE_ENDIAN).asShortBuffer().get(inShorts)
+                    
+                    val ratio = inRate.toDouble() / targetRate.toDouble()
+                    val outLen = (inShorts.size / ratio).toInt()
+                    val outShorts = ShortArray(outLen)
+                    for (i in 0 until outLen) {
+                        val inIndex = (i * ratio).toInt()
+                        if (inIndex < inShorts.size) {
+                            outShorts[i] = inShorts[inIndex]
+                        }
+                    }
+                    val outBytes = ByteArray(outShorts.size * 2)
+                    java.nio.ByteBuffer.wrap(outBytes).order(java.nio.ByteOrder.LITTLE_ENDIAN).asShortBuffer().put(outShorts)
+                    outBytes
+                } else {
+                    pcmBytes
+                }
+                
+                streamPcmToEsp32(finalPcm)
+            }
+
+
+        } catch (e: Exception) {
+            Log.e("AI_DEBUG", "Play Local Audio Exception: " + e.message)
+            resetAI(1000)
+        }
+    }
+
+    private fun resetAI(delayMs: Long = 0) {
+        Handler(Looper.getMainLooper()).postDelayed({
+            isAIThinking = false
+            isRecordingLocal = false
+            audioBufferQueue.clear()
+            playbackBuffer.reset()
+            try { mediaPlayer?.stop(); mediaPlayer?.release(); mediaPlayer = null } catch(e:Exception){}
+            audioTrack?.pause()
+            audioTrack?.flush()
+            if (isPlayingAudio) audioTrack?.play()
+            tvAiStatus.text = "�?AI 闲置就绪，等待听你讲�?.."
+        }, delayMs)
+    }
+}
+
+

@@ -24,10 +24,38 @@ float updateMovingAverage(float value,
   return sum / static_cast<float>(count);
 }
 
+unsigned long interpolateMidpointTimestamp(unsigned long start_ms, unsigned long end_ms) {
+  if (end_ms <= start_ms) {
+    return end_ms;
+  }
+
+  return start_ms + ((end_ms - start_ms) / 2UL);
+}
+
 }  // namespace
+
+HeartRateEstimator::Profile HeartRateEstimator::defaultFingerProfile() {
+  Profile profile;
+  profile.presenceIrMeanThreshold = project_config::kFingerPresentIrMeanThreshold;
+  profile.presenceRedMeanThreshold = project_config::kFingerPresentRedMeanThreshold;
+  profile.dcAlpha = project_config::kHeartRateDcAlpha;
+  profile.signalAlpha = project_config::kHeartRateSignalAlpha;
+  profile.amplitudeMin = project_config::kHeartRateAmplitudeMin;
+  profile.amplitudeMax = 0.0f;
+  profile.beatIntervalMinMs = project_config::kHeartRateBeatIntervalMinMs;
+  profile.beatIntervalMaxMs = project_config::kHeartRateBeatIntervalMaxMs;
+  profile.beatStaleTimeoutMs = project_config::kHeartRateBeatStaleTimeoutMs;
+  profile.contactLossResetMs = project_config::kHeartRateFingerLossResetMs;
+  return profile;
+}
 
 void HeartRateEstimator::reset() {
   *this = HeartRateEstimator{};
+  profile_ = defaultFingerProfile();
+}
+
+void HeartRateEstimator::setProfile(const Profile& profile) {
+  profile_ = profile;
 }
 
 void HeartRateEstimator::resetTrackingState(bool clearBeatCount) {
@@ -41,11 +69,16 @@ void HeartRateEstimator::resetTrackingState(bool clearBeatCount) {
   bpm_ = last_valid_bpm_;
   last_beat_at_ms_ = 0;
   last_beat_interval_ms_ = 0;
+  previous_sample_at_ms_ = 0;
+  last_trough_at_ms_ = 0;
   beat_intervals_count_ = 0;
   beat_intervals_index_ = 0;
   signal_window_sum_ = 0.0f;
   signal_count_ = 0;
   signal_index_ = 0;
+  previous_slope_ = 0.0f;
+  last_trough_value_ = 0.0f;
+  has_trough_ = false;
   if (clearBeatCount) {
     beat_count_ = 0;
     last_valid_bpm_ = 0.0f;
@@ -81,15 +114,15 @@ void HeartRateEstimator::addSample(const Max30102RawReader::Sample& sample) {
   average_red_ = static_cast<uint32_t>(red_presence_sum_ / static_cast<uint64_t>(presence_count_));
   const bool contact_detected =
       presence_count_ >= (kPresenceWindowSize / 2) &&
-      average_ir_ >= project_config::kFingerPresentIrMeanThreshold &&
-      average_red_ >= project_config::kFingerPresentRedMeanThreshold;
+      average_ir_ >= profile_.presenceIrMeanThreshold &&
+      average_red_ >= profile_.presenceRedMeanThreshold;
   if (contact_detected) {
     last_contact_at_ms_ = sample.capturedAtMs;
     finger_present_ = true;
   } else {
     finger_present_ =
         last_contact_at_ms_ > 0 &&
-        (sample.capturedAtMs - last_contact_at_ms_) <= project_config::kHeartRateFingerLossResetMs;
+        (sample.capturedAtMs - last_contact_at_ms_) <= profile_.contactLossResetMs;
   }
 
   if (!initialized_) {
@@ -106,7 +139,7 @@ void HeartRateEstimator::addSample(const Max30102RawReader::Sample& sample) {
     return;
   }
 
-  dc_estimate_ += (ir_value - dc_estimate_) * project_config::kHeartRateDcAlpha;
+  dc_estimate_ += (ir_value - dc_estimate_) * profile_.dcAlpha;
 
   previous_filtered_ir_ = filtered_ir_;
   const float detrended = ir_value - dc_estimate_;
@@ -117,53 +150,122 @@ void HeartRateEstimator::addSample(const Max30102RawReader::Sample& sample) {
       signal_window_sum_,
       signal_count_,
       signal_index_);
-  filtered_ir_ += (smoothed - filtered_ir_) * project_config::kHeartRateSignalAlpha;
+  filtered_ir_ += (smoothed - filtered_ir_) * profile_.signalAlpha;
 
   if (last_beat_at_ms_ > 0 &&
-      (sample.capturedAtMs - last_beat_at_ms_) > project_config::kHeartRateBeatStaleTimeoutMs) {
+      (sample.capturedAtMs - last_beat_at_ms_) > profile_.beatStaleTimeoutMs) {
     resetTrackingState(false);
   }
 
-  if (previous_filtered_ir_ < 0.0f && filtered_ir_ >= 0.0f) {
-    last_amplitude_ = signal_max_ - signal_min_;
-    positive_edge_ = true;
-    negative_edge_ = false;
-    signal_max_ = filtered_ir_;
+  if (profile_.usePeakTroughDetector) {
+    updatePeakTroughDetector(sample.capturedAtMs);
+  } else {
+    if (previous_filtered_ir_ < 0.0f && filtered_ir_ >= 0.0f) {
+      last_amplitude_ = signal_max_ - signal_min_;
+      positive_edge_ = true;
+      negative_edge_ = false;
+      signal_max_ = filtered_ir_;
 
-    const unsigned long now_ms = sample.capturedAtMs;
-    const unsigned long interval_ms = now_ms - last_beat_at_ms_;
-    const bool interval_valid =
-        last_beat_at_ms_ > 0 &&
-        interval_ms >= project_config::kHeartRateBeatIntervalMinMs &&
-        interval_ms <= project_config::kHeartRateBeatIntervalMaxMs;
-    if (last_amplitude_ >= project_config::kHeartRateAmplitudeMin && interval_valid) {
-      last_beat_at_ms_ = now_ms;
-      last_beat_interval_ms_ = interval_ms;
-      pushBeatInterval(interval_ms);
-      bpm_ = averagedBpm();
-      last_valid_bpm_ = bpm_;
-      ++beat_count_;
-      beat_detected_recently_ = true;
-    } else if (last_beat_at_ms_ == 0 && last_amplitude_ >= project_config::kHeartRateAmplitudeMin) {
-      last_beat_at_ms_ = now_ms;
-      ++beat_count_;
-      beat_detected_recently_ = true;
+      const unsigned long now_ms = sample.capturedAtMs;
+      const unsigned long interval_ms = now_ms - last_beat_at_ms_;
+      const bool interval_valid =
+          last_beat_at_ms_ > 0 &&
+          interval_ms >= profile_.beatIntervalMinMs &&
+          interval_ms <= profile_.beatIntervalMaxMs;
+      if (last_amplitude_ >= profile_.amplitudeMin && interval_valid) {
+        last_beat_at_ms_ = now_ms;
+        last_beat_interval_ms_ = interval_ms;
+        pushBeatInterval(interval_ms);
+        bpm_ = averagedBpm();
+        last_valid_bpm_ = bpm_;
+        ++beat_count_;
+        beat_detected_recently_ = true;
+      } else if (last_beat_at_ms_ == 0 && last_amplitude_ >= profile_.amplitudeMin) {
+        last_beat_at_ms_ = now_ms;
+        ++beat_count_;
+        beat_detected_recently_ = true;
+      }
+    }
+
+    if (previous_filtered_ir_ > 0.0f && filtered_ir_ <= 0.0f) {
+      positive_edge_ = false;
+      negative_edge_ = true;
+      signal_min_ = filtered_ir_;
+    }
+
+    if (positive_edge_ && filtered_ir_ > signal_max_) {
+      signal_max_ = filtered_ir_;
+    }
+
+    if (negative_edge_ && filtered_ir_ < signal_min_) {
+      signal_min_ = filtered_ir_;
     }
   }
 
-  if (previous_filtered_ir_ > 0.0f && filtered_ir_ <= 0.0f) {
-    positive_edge_ = false;
-    negative_edge_ = true;
-    signal_min_ = filtered_ir_;
+  previous_sample_at_ms_ = sample.capturedAtMs;
+}
+
+void HeartRateEstimator::acceptBeatCandidate(unsigned long beat_at_ms, float amplitude) {
+  last_amplitude_ = amplitude;
+  if (amplitude < profile_.amplitudeMin) {
+    return;
   }
 
-  if (positive_edge_ && filtered_ir_ > signal_max_) {
-    signal_max_ = filtered_ir_;
+  if (profile_.amplitudeMax > 0.0f && amplitude > profile_.amplitudeMax) {
+    return;
   }
 
-  if (negative_edge_ && filtered_ir_ < signal_min_) {
-    signal_min_ = filtered_ir_;
+  if (last_beat_at_ms_ == 0) {
+    last_beat_at_ms_ = beat_at_ms;
+    ++beat_count_;
+    beat_detected_recently_ = true;
+    return;
   }
+
+  if (beat_at_ms <= last_beat_at_ms_) {
+    return;
+  }
+
+  const unsigned long interval_ms = beat_at_ms - last_beat_at_ms_;
+  if (interval_ms < profile_.beatIntervalMinMs || interval_ms > profile_.beatIntervalMaxMs) {
+    return;
+  }
+
+  last_beat_at_ms_ = beat_at_ms;
+  last_beat_interval_ms_ = interval_ms;
+  pushBeatInterval(interval_ms);
+  bpm_ = averagedBpm();
+  last_valid_bpm_ = bpm_;
+  ++beat_count_;
+  beat_detected_recently_ = true;
+}
+
+void HeartRateEstimator::updatePeakTroughDetector(unsigned long sample_at_ms) {
+  const float current_slope = filtered_ir_ - previous_filtered_ir_;
+  if (previous_sample_at_ms_ == 0) {
+    previous_slope_ = current_slope;
+    return;
+  }
+
+  const bool has_trough_turn = previous_slope_ < 0.0f && current_slope >= 0.0f;
+  const bool has_peak_turn = previous_slope_ > 0.0f && current_slope <= 0.0f;
+
+  if (has_trough_turn) {
+    last_trough_value_ = previous_filtered_ir_;
+    last_trough_at_ms_ = previous_sample_at_ms_;
+    has_trough_ = true;
+  }
+
+  if (has_peak_turn && has_trough_ && previous_sample_at_ms_ > last_trough_at_ms_) {
+    const float peak_value = previous_filtered_ir_;
+    const float amplitude = peak_value - last_trough_value_;
+    const unsigned long beat_at_ms =
+        interpolateMidpointTimestamp(last_trough_at_ms_, previous_sample_at_ms_);
+    acceptBeatCandidate(beat_at_ms, amplitude);
+    has_trough_ = false;
+  }
+
+  previous_slope_ = current_slope;
 }
 
 bool HeartRateEstimator::hasValidBpm() const {
@@ -180,6 +282,10 @@ bool HeartRateEstimator::fingerPresent() const {
 
 bool HeartRateEstimator::beatDetectedRecently() const {
   return beat_detected_recently_;
+}
+
+bool HeartRateEstimator::contactPresent() const {
+  return finger_present_;
 }
 
 uint32_t HeartRateEstimator::lastIr() const {

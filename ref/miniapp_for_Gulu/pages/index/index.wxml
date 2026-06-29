@@ -1,0 +1,48 @@
+<view class="dashboard">
+
+  <view class="module-card recorder-card">
+    <view class="module-title">🎙️ 按键说话</view>
+    <view class="record-hint {{isRecording ? 'recording' : ''}}">{{recordHint}}</view>
+    <button
+      class="record-btn {{isRecording ? 'recording' : ''}}"
+      bindtouchstart="startRecord"
+      bindtouchend="stopRecord"
+      bindtouchcancel="stopRecord"
+    >{{isRecording ? '松开发送' : (isUploading ? '发送中...' : '按住说话')}}</button>
+  </view>
+  
+  <view class="module-card global-status">
+    <view class="status-indicator" style="color: {{statusColor}}">
+      <text class="dot">●</text> {{statusText}}
+    </view>
+    <view class="main-message">{{receivedMessage}}</view>
+  </view>
+
+  <view class="module-card" wx:if="{{imageUrl}}">
+    <view class="module-title">📷 最新视角</view>
+    <image src="{{imageUrl}}" mode="aspectFill" class="monitor-img"></image>
+  </view>
+
+  <view class="module-card" wx:if="{{userVoice || aiReply}}">
+    <view class="module-title">✨ AI 思维流</view>
+    <view wx:if="{{userVoice}}" class="chat-row user-row">
+      <text class="chat-label">我：</text>{{userVoice}}
+    </view>
+    <view wx:if="{{aiReply}}" class="chat-row ai-row">
+      <text class="chat-label">Gulu：</text>{{aiReply}}
+    </view>
+    
+    <view class="steps-area" wx:if="{{steps.length > 0}}">
+      <view class="steps-title">🪜 任务拆解</view>
+      <view class="step-item" wx:for="{{steps}}" wx:key="index">
+        {{index + 1}}. {{item}}
+      </view>
+    </view>
+  </view>
+
+  <view class="module-card" wx:if="{{audioUrl}}">
+    <view class="module-title">🎵 语音存档</view>
+    <button type="primary" bindtap="playAudio" class="play-btn">▶️ 播放最新语音</button>
+  </view>
+
+</view>

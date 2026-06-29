@@ -1,0 +1,117 @@
+.history-page {
+  min-height: 100vh;
+  padding: 28rpx;
+  background: linear-gradient(180deg, #f5eee2 0%, #ece2d0 100%);
+}
+
+.history-hero,
+.history-card {
+  border-radius: 28rpx;
+  background: rgba(255, 252, 246, 0.95);
+  box-shadow: 0 18rpx 46rpx rgba(50, 52, 35, 0.08);
+}
+
+.history-hero {
+  padding: 30rpx;
+}
+
+.hero-title {
+  font-size: 42rpx;
+  font-weight: 700;
+  color: #20372a;
+}
+
+.hero-subtitle {
+  margin-top: 14rpx;
+  font-size: 24rpx;
+  line-height: 1.7;
+  color: #667064;
+}
+
+.history-card {
+  margin-top: 22rpx;
+  padding: 28rpx;
+}
+
+.history-head,
+.history-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 20rpx;
+}
+
+.history-tag {
+  display: inline-block;
+  padding: 6rpx 16rpx;
+  border-radius: 999rpx;
+  background: #edf2dd;
+  color: #43553f;
+  font-size: 20rpx;
+  font-weight: 700;
+}
+
+.history-title {
+  margin-top: 12rpx;
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #20372a;
+}
+
+.history-time {
+  font-size: 22rpx;
+  color: #697364;
+}
+
+.history-copy {
+  margin-top: 20rpx;
+  font-size: 24rpx;
+  line-height: 1.8;
+  color: #485446;
+}
+
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16rpx;
+  margin-top: 22rpx;
+}
+
+.metric-card {
+  padding: 18rpx;
+  border-radius: 20rpx;
+  background: #f3ecdb;
+}
+
+.metric-value {
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #20372a;
+}
+
+.metric-label {
+  margin-top: 8rpx;
+  font-size: 22rpx;
+  color: #6b7468;
+}
+
+.history-footer {
+  margin-top: 22rpx;
+  align-items: center;
+}
+
+.duration-chip,
+.detail-link {
+  font-size: 22rpx;
+}
+
+.duration-chip {
+  padding: 10rpx 16rpx;
+  border-radius: 999rpx;
+  background: #f0f4e4;
+  color: #41523d;
+}
+
+.detail-link {
+  color: #b96737;
+  font-weight: 700;
+}

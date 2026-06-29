@@ -1,0 +1,9 @@
+{
+  "desc": "BLE link test mini program sitemap",
+  "rules": [
+    {
+      "action": "allow",
+      "page": "*"
+    }
+  ]
+}
