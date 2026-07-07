@@ -87,7 +87,8 @@
 }
 
 .primary,
-.secondary {
+.secondary,
+.ghost {
   border-radius: 20rpx;
   font-size: 28rpx;
 }
@@ -100,6 +101,12 @@
 .secondary {
   background: #d7eb9b;
   color: #20372a;
+}
+
+.ghost {
+  background: rgba(255, 252, 245, 0.92);
+  color: #20372a;
+  border: 1rpx solid rgba(32, 55, 42, 0.14);
 }
 
 .metric {
@@ -118,6 +125,58 @@
 .metric-label {
   color: #6f7467;
   font-size: 24rpx;
+}
+
+.metric-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 16rpx;
+}
+
+.metric-card {
+  padding: 20rpx;
+  border-radius: 20rpx;
+  background: #eef3df;
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+
+.metric-card .metric-value {
+  font-size: 42rpx;
+}
+
+.metric-card .metric-value.small {
+  font-size: 28rpx;
+}
+
+.chart-caption {
+  margin-bottom: 16rpx;
+  color: #5b6558;
+  font-size: 22rpx;
+  line-height: 1.6;
+}
+
+.wave-canvas {
+  width: 100%;
+  border-radius: 18rpx;
+  background: #f8f3e7;
+}
+
+.log-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+}
+
+.log-item {
+  padding: 16rpx 18rpx;
+  border-radius: 16rpx;
+  background: #eef3df;
+  color: #20372a;
+  font-size: 22rpx;
+  line-height: 1.6;
+  word-break: break-all;
 }
 
 .raw-block {

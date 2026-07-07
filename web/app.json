@@ -4,6 +4,7 @@
     "pages/active-history/index",
     "pages/active-report/index",
     "pages/daily-analysis/index",
+    "pages/overall-analysis/index",
     "pages/index/index"
   ],
   "window": {

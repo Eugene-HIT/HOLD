@@ -1,3 +1,5 @@
+const holdBleRuntime = require('./utils/hold-ble-runtime');
+
 App({
   onLaunch() {
     if (!wx.cloud) {
@@ -9,5 +11,11 @@ App({
       traceUser: true,
       env: 'hold-dev-env-d2gukfp01ac296189'
     });
+
+    holdBleRuntime.init();
+  },
+
+  globalData: {
+    bleRuntime: holdBleRuntime
   }
 });

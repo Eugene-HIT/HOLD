@@ -1,14 +1,15 @@
 /*
  * 创建时间: 2026-06-08
- * 文件主要职责: 在 XIAO ESP32S3 / Plus + MPU6050 上实现“引导式个体化校准 + 个人参数运行”的单 IMU 呼吸实验入口。
+ * 文件主要职责: 在 XIAO ESP32S3 / Plus + MPU6050/MPU6500 上实现“引导式个体化校准 + 个人参数运行”的单 IMU 呼吸实验入口。
  * 核心函数输入输出:
  * - setup(): 初始化串口、I2C 和 MPU6050，打印接线说明，并进入引导式校准流程。
  * - loop(): 固定采样读取 IMU；校准阶段按提示学习个人基线与叹气特征，运行阶段输出呼吸周期、吸气/呼气时间和叹气计数。
- * 最后更改时间: 2026-06-09
+ * 最后更改时间: 2026-07-01
  * 累加式更改日志:
  * - 2026-06-08: 新建单 IMU 呼吸实验入口。
  * - 2026-06-08: 由固定阈值实验切换到“引导式个体化校准 + 轻量学习”第一版实现。
  * - 2026-06-09: 新增运行阶段 VOFA 调试输出，便于观察原始载波、基线与判定量曲线。
+ * - 2026-07-01: 同步兼容 MPU6500/MPU9250 系列 WHO_AM_I，避免新 IMU 模块在呼吸环境中被误判为失联。
  * 注意事项:
  * - 当前版本不做复杂模型训练，而是根据校准阶段统计个人参数。
  * - 第一版默认每次上电重新校准，暂不写入 Flash 持久化。
@@ -30,7 +31,6 @@ constexpr uint8_t kMpu6050AddressHigh = 0x69;
 constexpr uint8_t kRegisterWhoAmI = 0x75;
 constexpr uint8_t kRegisterPowerManagement1 = 0x6B;
 constexpr uint8_t kRegisterAccelXoutH = 0x3B;
-constexpr uint8_t kExpectedWhoAmI = 0x68;
 
 constexpr unsigned long kStartupDelayMs = 300;
 constexpr unsigned long kSampleIntervalMs = 20;
@@ -278,10 +278,19 @@ struct PersonalProfile {
   float acceptanceLockRatio = kAcceptanceLockRatio;
 };
 
+struct ImuIdentity {
+  uint8_t whoAmI;
+  const char* modelName;
+  float temperatureScale;
+  float temperatureOffset;
+};
+
 struct RuntimeState {
   bool sensorReady = false;
   bool runtimeLogPaused = true;
   uint8_t activeAddress = 0;
+  uint8_t activeWhoAmI = 0;
+  const char* activeModelName = "UNKNOWN";
   unsigned long startedAtMs = 0;
   unsigned long lastSampleAtMs = 0;
   unsigned long lastReconnectAtMs = 0;
@@ -354,6 +363,13 @@ struct RuntimeState {
 };
 
 RuntimeState runtimeState;
+
+constexpr ImuIdentity kSupportedImuIdentities[] = {
+  {0x68, "MPU6050/MPU6000", 340.0f, 36.53f},
+  {0x70, "MPU6500", 333.87f, 21.0f},
+  {0x71, "MPU9250/MPU9255-family", 333.87f, 21.0f},
+  {0x73, "MPU9255", 333.87f, 21.0f},
+};
 
 float squaref(float value) {
   return value * value;
@@ -434,8 +450,23 @@ float axisValue(const Vector3f& value, uint8_t axisIndex) {
   }
 }
 
+const ImuIdentity* identifyImu(uint8_t whoAmI) {
+  for (const ImuIdentity& identity : kSupportedImuIdentities) {
+    if (identity.whoAmI == whoAmI) {
+      return &identity;
+    }
+  }
+
+  return nullptr;
+}
+
 float convertTemperatureCelsius(int16_t rawTemperature) {
-  return static_cast<float>(rawTemperature) / 340.0f + 36.53f;
+  const ImuIdentity* identity = identifyImu(runtimeState.activeWhoAmI);
+  if (identity == nullptr) {
+    return static_cast<float>(rawTemperature) / 340.0f + 36.53f;
+  }
+
+  return static_cast<float>(rawTemperature) / identity->temperatureScale + identity->temperatureOffset;
 }
 
 float convertAccelToG(int16_t rawAcceleration) {
@@ -710,10 +741,13 @@ bool tryInitializeAt(uint8_t address) {
   }
 
   Serial.printf("[mpu6050-cal] addr=0x%02X | WHO_AM_I=0x%02X\n", address, whoAmI);
-  if (whoAmI != kExpectedWhoAmI) {
+  const ImuIdentity* identity = identifyImu(whoAmI);
+  if (identity == nullptr) {
     Serial.println("[mpu6050-cal] unexpected WHO_AM_I, continue probing other address");
     return false;
   }
+
+  Serial.printf("[mpu6050-cal] identified model=%s\n", identity->modelName);
 
   if (!writeRegister(address, kRegisterPowerManagement1, 0x00)) {
     Serial.println("[mpu6050-cal] wake-up write failed");
@@ -722,18 +756,25 @@ bool tryInitializeAt(uint8_t address) {
 
   delay(100);
   runtimeState.activeAddress = address;
+  runtimeState.activeWhoAmI = whoAmI;
+  runtimeState.activeModelName = identity->modelName;
   runtimeState.sensorReady = true;
   runtimeState.startedAtMs = millis();
   runtimeState.gravityEstimateG = Vector3f(0.0f, 0.0f, 1.0f);
   resetRuntimeDetectorState();
   resetCalibrationState(runtimeState.startedAtMs);
-  Serial.printf("[mpu6050-cal] init ok | active_addr=0x%02X\n", runtimeState.activeAddress);
+  Serial.printf(
+      "[mpu6050-cal] init ok | active_addr=0x%02X | model=%s\n",
+      runtimeState.activeAddress,
+      runtimeState.activeModelName);
   return true;
 }
 
 void tryInitializeSensor() {
   runtimeState.sensorReady = false;
   runtimeState.activeAddress = 0;
+  runtimeState.activeWhoAmI = 0;
+  runtimeState.activeModelName = "UNKNOWN";
 
   if (tryInitializeAt(kMpu6050AddressLow)) {
     return;

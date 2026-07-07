@@ -122,6 +122,33 @@
   padding: 28rpx;
 }
 
+.chart-meta {
+  margin-top: 12rpx;
+  font-size: 22rpx;
+  color: #6a7368;
+}
+
+.wave-canvas {
+  display: block;
+  margin-top: 18rpx;
+  border-radius: 22rpx;
+  overflow: hidden;
+}
+
+.report-button {
+  margin-top: 18rpx;
+  border-radius: 20rpx;
+  background: #20372a;
+  color: #f7f2e5;
+  font-size: 24rpx;
+}
+
+.report-error {
+  margin-top: 12rpx;
+  font-size: 22rpx;
+  color: #b15435;
+}
+
 .panel-title {
   font-size: 28rpx;
   font-weight: 700;

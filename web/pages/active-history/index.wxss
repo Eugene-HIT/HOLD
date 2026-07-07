@@ -33,6 +33,10 @@
   padding: 28rpx;
 }
 
+.empty-card {
+  text-align: center;
+}
+
 .history-head,
 .history-footer {
   display: flex;
@@ -97,6 +101,32 @@
 .history-footer {
   margin-top: 22rpx;
   align-items: center;
+}
+
+.history-actions {
+  display: flex;
+  gap: 16rpx;
+  margin-top: 18rpx;
+}
+
+.history-button {
+  flex: 1;
+  border-radius: 18rpx;
+  font-size: 24rpx;
+}
+
+.history-button.solid {
+  background: #20372a;
+  color: #f7f2e5;
+}
+
+.history-button.outline {
+  background: #f3ecdb;
+  color: #20372a;
+}
+
+.subtle-copy {
+  color: #6b7468;
 }
 
 .duration-chip,

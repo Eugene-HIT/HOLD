@@ -1,11 +1,15 @@
 <view class="history-page">
   <view class="history-hero">
     <view class="hero-title">主动检测历史</view>
-    <view class="hero-subtitle">先用固定内容占位，后续替换为真实指部 PPG 检测记录与报告。</view>
+    <view class="hero-subtitle">这里只显示已收到并缓存下来的真实主动检测记录。</view>
+  </view>
+
+  <view wx:if="{{!activeMeasurements.length}}" class="history-card empty-card">
+    <view class="history-copy">暂无真实主动检测记录。</view>
   </view>
 
   <block wx:for="{{activeMeasurements}}" wx:key="id">
-    <view class="history-card" bindtap="openReport" data-id="{{item.id}}">
+    <view class="history-card">
       <view class="history-head">
         <view>
           <view class="history-tag">{{item.resultTag}}</view>
@@ -27,8 +31,17 @@
 
       <view class="history-footer">
         <view class="duration-chip">时长 {{item.durationLabel}}</view>
-        <view class="detail-link">查看报告</view>
+        <view class="detail-link" bindtap="openReport" data-id="{{item.id}}">查看报告</view>
       </view>
+
+      <view class="history-actions">
+        <button class="history-button solid" bindtap="generateReport" data-id="{{item.id}}">生成报告</button>
+        <button class="history-button outline" bindtap="openReport" data-id="{{item.id}}">报告详情</button>
+      </view>
+
+      <view class="history-copy subtle-copy" wx:if="{{item.generatedReportUpdatedAt}}">最近报告 {{item.generatedReportUpdatedAt}} · {{item.generatedReportSource || 'unknown'}}</view>
+      <view class="history-copy subtle-copy" wx:if="{{item.generatedReportText}}">{{item.generatedReportText}}</view>
+      <view class="history-copy subtle-copy" wx:if="{{item.generatedReportError}}">错误 {{item.generatedReportError}}</view>
     </view>
   </block>
 </view>

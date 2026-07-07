@@ -5,6 +5,14 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 
 const db = cloud.database();
 
+function normalizeEnvValue(value) {
+  if (typeof value !== 'string') {
+    return '';
+  }
+
+  return value.trim().replace(/^['\"]|['\"]$/g, '');
+}
+
 function callOpenAiCompatibleChat({ apiKey, baseUrl, model, prompt }) {
   return new Promise((resolve, reject) => {
     const requestBody = JSON.stringify({
@@ -15,7 +23,7 @@ function callOpenAiCompatibleChat({ apiKey, baseUrl, model, prompt }) {
           content: prompt
         }
       ],
-      temperature: 0.2
+      temperature: 1
     });
 
     const request = https.request(baseUrl, {
@@ -56,9 +64,9 @@ function callOpenAiCompatibleChat({ apiKey, baseUrl, model, prompt }) {
 }
 
 async function getLlmReply(event) {
-  const apiKey = process.env.LLM_API_KEY || '';
-  const baseUrl = process.env.LLM_BASE_URL || '';
-  const model = process.env.LLM_MODEL || 'gpt-4.1-mini';
+  const apiKey = normalizeEnvValue(process.env.LLM_API_KEY || '');
+  const baseUrl = normalizeEnvValue(process.env.LLM_BASE_URL || '');
+  const model = normalizeEnvValue(process.env.LLM_MODEL || '') || 'gpt-4.1-mini';
 
   if (!apiKey || !baseUrl) {
     return '已收到按钮事件，云端基础链路已通';
@@ -84,18 +92,21 @@ exports.main = async (event) => {
 
   let llmReply = '';
   let llmStatus = 'success';
+  let llmError = '';
 
   try {
     llmReply = await getLlmReply(sanitizedEvent);
   } catch (error) {
     llmStatus = 'fallback';
     llmReply = '已收到按钮事件，模型代理待补齐配置';
+    llmError = error && error.message ? error.message : 'unknown';
   }
 
   const storagePayload = {
     ...sanitizedEvent,
     llm_status: llmStatus,
     llm_reply: llmReply,
+    llm_error: llmError,
     archived_at: now
   };
 
@@ -113,6 +124,7 @@ exports.main = async (event) => {
       ...sanitizedEvent,
       llm_status: llmStatus,
       llm_reply: llmReply,
+      llm_error: llmError,
       storage_file_id: uploadResult.fileID,
       storage_cloud_path: cloudPath
     }
@@ -125,6 +137,7 @@ exports.main = async (event) => {
     storage_file_id: uploadResult.fileID,
     storage_cloud_path: cloudPath,
     llm_status: llmStatus,
-    llm_reply: llmReply
+    llm_reply: llmReply,
+    llm_error: llmError
   };
 };

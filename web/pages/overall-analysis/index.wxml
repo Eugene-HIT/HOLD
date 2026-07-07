@@ -1,0 +1,39 @@
+<view class="overall-page">
+  <view class="overall-hero">
+    <view class="hero-tag">SUMMARY</view>
+    <view class="hero-title">整体分析页</view>
+    <view class="hero-subtitle">把呼吸报告、当天心率报告、指部 PPG 报告与总结板块收敛到同一页，便于连续查看。</view>
+  </view>
+
+  <view class="overall-panel">
+    <view class="panel-head">
+      <view>
+        <view class="panel-title">{{overallSummary.title || '整体分析'}}</view>
+        <view class="panel-meta">{{overallSummary.updatedAt ? '最近更新 ' + overallSummary.updatedAt : '尚未生成分析'}}</view>
+      </view>
+      <view class="panel-actions">
+        <button class="refresh-button" bindtap="refreshInsight" loading="{{insightStatus === 'running'}}">刷新分析</button>
+        <button class="ghost-button" bindtap="generateDetailedReport" loading="{{detailedReportStatus === 'running'}}">生成详尽报告</button>
+      </view>
+    </view>
+    <view class="section-text">{{overallSummary.summary || '暂无整体摘要。'}}</view>
+    <view class="section-text">{{overallSummary.advice || '暂无建议。'}}</view>
+  </view>
+
+  <view class="overall-panel">
+    <view class="panel-title">详尽综合报告</view>
+    <view class="panel-meta">{{detailedReportUpdatedAt ? '最近生成 ' + detailedReportUpdatedAt : '尚未生成详尽报告'}}</view>
+    <view class="panel-meta" wx:if="{{detailedReportSource}}">来源 {{detailedReportSource}}</view>
+    <view class="report-error" wx:if="{{detailedReportError}}">错误 {{detailedReportError}}</view>
+    <view class="section-text">{{detailedReport || '点击“生成详尽报告”后，会基于最近真实缓存的呼吸、当天心率与主动检测数据生成更完整的文字分析。'}}</view>
+  </view>
+
+  <block wx:if="{{overallSummary && overallSummary.sections && overallSummary.sections.length}}">
+    <block wx:for="{{overallSummary.sections}}" wx:key="key">
+      <view class="overall-panel">
+        <view class="panel-title">{{item.title}}</view>
+        <view class="section-text">{{item.body}}</view>
+      </view>
+    </block>
+  </block>
+</view>

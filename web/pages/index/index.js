@@ -1,252 +1,273 @@
-const SERVICE_UUID = '19b10010-e8f2-537e-4f6c-d104768a1214';
-const EVENT_CHARACTERISTIC_UUID = '19b10011-e8f2-537e-4f6c-d104768a1214';
-const DEVICE_NAME_PREFIX = 'HOLD-LINK-TEST';
-
-function arrayBufferToString(buffer) {
-  const byteArray = new Uint8Array(buffer);
-  let result = '';
-
-  for (let index = 0; index < byteArray.length; index += 1) {
-    result += String.fromCharCode(byteArray[index]);
-  }
-
-  return result;
-}
+const holdBleRuntime = require('../../utils/hold-ble-runtime');
 
 Page({
   data: {
     adapterStatus: '未初始化',
     connectionStatus: '未连接',
-    deviceName: '未发现',
-    deviceId: '',
-    serviceId: '',
-    eventCharacteristicId: '',
+    deviceName: '',
     scanning: false,
-    pressCount: 0,
-    lastEventTime: '暂无',
-    lastEventRaw: '等待按钮事件...',
-    cloudStatus: '未提交',
-    storagePath: '暂无',
-    llmReply: '暂无'
+    lastEventTime: '',
+    lastPacketType: '',
+    lastEventRaw: '',
+    currentDeviceState: '',
+    currentGuideText: '',
+    currentPhaseText: '',
+    currentRespBpm: '',
+    currentHeartBpm: '',
+    currentMotionLevel: '',
+    currentBeatCount: 0,
+    respWaveSummary: '',
+    heartWaveSummary: '',
+    debugLogs: [],
+    chartWidth: 320,
+    chartHeight: 180
   },
 
+  renderIntervalMs: 180,
+
   onLoad() {
-    wx.onBLECharacteristicValueChange((result) => {
-      this.handleNotifyMessage(result);
+    this.unsubscribeRuntime = holdBleRuntime.subscribe((state) => {
+      this.pendingRuntimeState = state;
+      this.scheduleStateFlush();
     });
 
-    wx.onBluetoothDeviceFound((result) => {
-      const devices = result.devices || [];
-      const target = devices.find((item) => (item.name || item.localName || '').indexOf(DEVICE_NAME_PREFIX) !== -1);
-
-      if (target) {
-        this.stopDiscovery();
-        this.setData({
-          deviceName: target.name || target.localName || DEVICE_NAME_PREFIX,
-          deviceId: target.deviceId,
-          adapterStatus: '已发现目标设备',
-          connectionStatus: '正在连接'
-        });
-        this.connectDevice(target.deviceId);
-      }
+    const systemInfo = wx.getSystemInfoSync();
+    this.setData({
+      chartWidth: Math.max(280, Math.floor(systemInfo.windowWidth - 56)),
+      chartHeight: 180
     });
+  },
+
+  onReady() {
+    this.chartDrawPending = false;
+    this.drawWaveCharts();
   },
 
   onUnload() {
-    this.stopDiscovery();
-    if (this.data.deviceId) {
-      wx.closeBLEConnection({ deviceId: this.data.deviceId });
+    if (this.renderTimer) {
+      clearTimeout(this.renderTimer);
+      this.renderTimer = null;
     }
-    wx.closeBluetoothAdapter({});
+    if (this.unsubscribeRuntime) {
+      this.unsubscribeRuntime();
+      this.unsubscribeRuntime = null;
+    }
+  },
+
+  scheduleStateFlush() {
+    if (this.renderTimer) {
+      return;
+    }
+
+    this.renderTimer = setTimeout(() => {
+      this.renderTimer = null;
+      if (this.pendingRuntimeState) {
+        this.applyRuntimeState(this.pendingRuntimeState);
+      }
+    }, this.renderIntervalMs);
   },
 
   handleScanAndConnect() {
+    holdBleRuntime.startScanAndConnect();
+  },
+
+  applyRuntimeState(state) {
+    this.respWavePoints = state.respWavePoints || [];
+    this.respBeatMarkerPoints = state.respBeatMarkerPoints || [];
+    this.heartWavePoints = state.heartWavePoints || [];
+    this.heartBeatMarkerPoints = state.heartBeatMarkerPoints || [];
     this.setData({
-      adapterStatus: '初始化蓝牙中',
-      connectionStatus: '未连接',
-      scanning: true
+      adapterStatus: state.adapterStatus,
+      connectionStatus: state.connectionStatus,
+      deviceName: state.deviceName,
+      scanning: state.scanning,
+      lastEventTime: state.lastEventTime,
+      lastPacketType: state.lastPacketType,
+      lastEventRaw: (state.lastEventRaw || '').slice(0, 220),
+      currentDeviceState: state.currentDeviceState,
+      currentGuideText: state.currentGuideText,
+      currentPhaseText: state.currentPhaseText,
+      currentRespBpm: state.currentRespBpm,
+      currentHeartBpm: state.currentHeartBpm,
+      currentMotionLevel: state.currentMotionLevel,
+      currentBeatCount: state.currentBeatCount,
+      respWaveSummary: state.respWaveSummary,
+      heartWaveSummary: state.heartWaveSummary,
+      debugLogs: (state.debugLogs || []).slice(0, 8)
     });
-
-    wx.openBluetoothAdapter({
-      success: () => {
-        this.setData({ adapterStatus: '蓝牙已开启，开始扫描' });
-        this.startDiscovery();
-      },
-      fail: (error) => {
-        this.setData({
-          adapterStatus: `蓝牙初始化失败: ${error.errCode || error.errMsg}`,
-          scanning: false
-        });
-      }
-    });
+    this.scheduleChartDraw();
   },
 
-  startDiscovery() {
-    wx.startBluetoothDevicesDiscovery({
-      allowDuplicatesKey: false,
-      success: () => {
-        this.setData({ adapterStatus: '扫描中，等待目标设备...', scanning: true });
-      },
-      fail: (error) => {
-        this.setData({
-          adapterStatus: `扫描失败: ${error.errCode || error.errMsg}`,
-          scanning: false
-        });
-      }
-    });
-  },
-
-  stopDiscovery() {
-    wx.stopBluetoothDevicesDiscovery({
-      complete: () => {
-        if (this.data.scanning) {
-          this.setData({ scanning: false });
-        }
-      }
-    });
-  },
-
-  connectDevice(deviceId) {
-    wx.createBLEConnection({
-      deviceId,
-      timeout: 10000,
-      success: () => {
-        this.setData({ connectionStatus: '已连接，获取服务中' });
-        this.fetchServices(deviceId);
-      },
-      fail: (error) => {
-        this.setData({ connectionStatus: `连接失败: ${error.errCode || error.errMsg}` });
-      }
-    });
-  },
-
-  fetchServices(deviceId) {
-    wx.getBLEDeviceServices({
-      deviceId,
-      success: (result) => {
-        const service = (result.services || []).find((item) => item.uuid.toLowerCase() === SERVICE_UUID);
-
-        if (!service) {
-          this.setData({ connectionStatus: '未找到目标服务' });
-          return;
-        }
-
-        this.setData({ serviceId: service.uuid, connectionStatus: '服务已找到，获取特征中' });
-        this.fetchCharacteristics(deviceId, service.uuid);
-      },
-      fail: (error) => {
-        this.setData({ connectionStatus: `获取服务失败: ${error.errCode || error.errMsg}` });
-      }
-    });
-  },
-
-  fetchCharacteristics(deviceId, serviceId) {
-    wx.getBLEDeviceCharacteristics({
-      deviceId,
-      serviceId,
-      success: (result) => {
-        const characteristic = (result.characteristics || []).find((item) => item.uuid.toLowerCase() === EVENT_CHARACTERISTIC_UUID);
-
-        if (!characteristic) {
-          this.setData({ connectionStatus: '未找到按钮事件特征' });
-          return;
-        }
-
-        this.setData({ eventCharacteristicId: characteristic.uuid });
-        this.enableNotify(deviceId, serviceId, characteristic.uuid);
-      },
-      fail: (error) => {
-        this.setData({ connectionStatus: `获取特征失败: ${error.errCode || error.errMsg}` });
-      }
-    });
-  },
-
-  enableNotify(deviceId, serviceId, characteristicId) {
-    wx.notifyBLECharacteristicValueChange({
-      deviceId,
-      serviceId,
-      characteristicId,
-      state: true,
-      success: () => {
-        this.setData({
-          connectionStatus: '已订阅按钮通知',
-          adapterStatus: '蓝牙链路已打通，等待按钮事件'
-        });
-      },
-      fail: (error) => {
-        this.setData({ connectionStatus: `订阅失败: ${error.errCode || error.errMsg}` });
-      }
-    });
-  },
-
-  handleNotifyMessage(result) {
-    const rawText = arrayBufferToString(result.value);
-    let eventPayload = null;
-
-    try {
-      eventPayload = JSON.parse(rawText);
-    } catch (error) {
-      this.setData({
-        lastEventRaw: `事件解析失败: ${rawText}`,
-        connectionStatus: '收到无法解析的通知'
-      });
+  scheduleChartDraw() {
+    if (this.chartDrawPending) {
       return;
     }
 
-    const pressCount = Number(eventPayload.press_count || 0);
-    const lastEventTime = new Date().toLocaleString();
-    this.setData({
-      pressCount,
-      lastEventTime,
-      lastEventRaw: rawText,
-      cloudStatus: '提交云函数中...'
-    });
-
-    this.submitEventToCloud(eventPayload);
+    this.chartDrawPending = true;
+    setTimeout(() => {
+      this.chartDrawPending = false;
+      this.drawWaveCharts();
+    }, this.renderIntervalMs);
   },
 
-  submitEventToCloud(eventPayload) {
-    wx.cloud.callFunction({
-      name: 'link_test_ingest',
-      data: {
-        device_id: eventPayload.device_id,
-        event_type: eventPayload.event_type,
-        press_count: eventPayload.press_count,
-        device_timestamp: eventPayload.device_timestamp,
-        miniapp_timestamp: Date.now()
-      },
-      success: (result) => {
-        const payload = result.result || {};
-        this.setData({
-          cloudStatus: payload.code === 200 ? '成功' : `失败: ${payload.msg || 'unknown'}`,
-          storagePath: payload.storage_cloud_path || payload.storage_file_id || '未写入',
-          llmReply: payload.llm_reply || '未返回文本'
-        });
-      },
-      fail: (error) => {
-        this.setData({
-          cloudStatus: `调用失败: ${error.errMsg}`,
-          llmReply: '云函数调用失败'
-        });
+  drawWaveCharts() {
+    this.drawDualWaveChart('respWaveCanvas', this.respWavePoints, this.respBeatMarkerPoints, {
+      primaryStrokeStyle: '#D9A441',
+      secondaryStrokeStyle: '#C44B1D'
+    });
+
+    this.drawHeartWaveChart();
+  },
+
+  drawDualWaveChart(canvasId, primaryPoints, secondaryPoints, options) {
+    const ctx = wx.createCanvasContext(canvasId, this);
+    const width = this.data.chartWidth;
+    const height = this.data.chartHeight;
+    const padding = 16;
+    const innerWidth = width - padding * 2;
+    const innerHeight = height - padding * 2;
+    const firstSeries = primaryPoints || [];
+    const secondSeries = secondaryPoints || [];
+    const pointCount = Math.max(firstSeries.length, secondSeries.length);
+
+    ctx.clearRect(0, 0, width, height);
+    ctx.setFillStyle('#F8F3E7');
+    ctx.fillRect(0, 0, width, height);
+    ctx.setStrokeStyle('rgba(32, 55, 42, 0.08)');
+    ctx.setLineWidth(1);
+    for (let index = 0; index <= 4; index += 1) {
+      const y = padding + (innerHeight / 4) * index;
+      ctx.beginPath();
+      ctx.moveTo(padding, y);
+      ctx.lineTo(width - padding, y);
+      ctx.stroke();
+    }
+
+    if (pointCount < 2) {
+      ctx.draw();
+      return;
+    }
+
+    let minValue = 0;
+    let maxValue = 0;
+    firstSeries.concat(secondSeries).forEach((point, index) => {
+      if (index === 0 || point < minValue) {
+        minValue = point;
+      }
+      if (index === 0 || point > maxValue) {
+        maxValue = point;
       }
     });
+
+    if (maxValue === minValue) {
+      maxValue += 1;
+      minValue -= 1;
+    }
+
+    const drawSeries = (series, color, lineWidth) => {
+      if (!series || series.length < 2) {
+        return;
+      }
+
+      ctx.beginPath();
+      series.forEach((point, index) => {
+        const x = padding + (innerWidth * index) / (series.length - 1);
+        const ratio = (point - minValue) / (maxValue - minValue);
+        const y = padding + innerHeight - ratio * innerHeight;
+        if (index === 0) {
+          ctx.moveTo(x, y);
+        } else {
+          ctx.lineTo(x, y);
+        }
+      });
+      ctx.setStrokeStyle(color);
+      ctx.setLineWidth(lineWidth);
+      ctx.stroke();
+    };
+
+    drawSeries(firstSeries, options.primaryStrokeStyle, 2);
+    drawSeries(secondSeries, options.secondaryStrokeStyle, 1.5);
+    ctx.draw();
+  },
+
+  drawHeartWaveChart() {
+    const ctx = wx.createCanvasContext('heartWaveCanvas', this);
+    const width = this.data.chartWidth;
+    const height = this.data.chartHeight;
+    const padding = 16;
+    const innerWidth = width - padding * 2;
+    const innerHeight = height - padding * 2;
+    const filteredPoints = this.heartWavePoints || [];
+    const beatMarkerPoints = this.heartBeatMarkerPoints || [];
+    const pointCount = Math.max(filteredPoints.length, beatMarkerPoints.length);
+
+    ctx.clearRect(0, 0, width, height);
+    ctx.setFillStyle('#F8F3E7');
+    ctx.fillRect(0, 0, width, height);
+
+    ctx.setStrokeStyle('rgba(32, 55, 42, 0.08)');
+    ctx.setLineWidth(1);
+    for (let index = 0; index <= 4; index += 1) {
+      const y = padding + (innerHeight / 4) * index;
+      ctx.beginPath();
+      ctx.moveTo(padding, y);
+      ctx.lineTo(width - padding, y);
+      ctx.stroke();
+    }
+
+    if (pointCount < 2) {
+      ctx.draw();
+      return;
+    }
+
+    let minValue = 0;
+    let maxValue = 0;
+    const mergedPoints = filteredPoints.concat(beatMarkerPoints);
+    mergedPoints.forEach((point, index) => {
+      if (index === 0 || point < minValue) {
+        minValue = point;
+      }
+      if (index === 0 || point > maxValue) {
+        maxValue = point;
+      }
+    });
+
+    if (maxValue === minValue) {
+      maxValue += 1;
+      minValue -= 1;
+    }
+
+    const drawSeries = (points, strokeStyle, lineWidth) => {
+      if (!points || points.length < 2) {
+        return;
+      }
+
+      ctx.beginPath();
+      points.forEach((point, index) => {
+        const x = padding + (innerWidth * index) / (points.length - 1);
+        const ratio = (point - minValue) / (maxValue - minValue);
+        const y = padding + innerHeight - ratio * innerHeight;
+        if (index === 0) {
+          ctx.moveTo(x, y);
+        } else {
+          ctx.lineTo(x, y);
+        }
+      });
+      ctx.setStrokeStyle(strokeStyle);
+      ctx.setLineWidth(lineWidth);
+      ctx.stroke();
+    };
+
+    drawSeries(filteredPoints, '#111111', 2);
+    drawSeries(beatMarkerPoints, '#FF2A8B', 1.5);
+    ctx.draw();
+  },
+
+  clearDebugPanels() {
+    holdBleRuntime.clearCachedData();
   },
 
   disconnectDevice() {
-    if (!this.data.deviceId) {
-      return;
-    }
-
-    wx.closeBLEConnection({
-      deviceId: this.data.deviceId,
-      complete: () => {
-        this.setData({
-          connectionStatus: '已断开',
-          deviceId: '',
-          serviceId: '',
-          eventCharacteristicId: ''
-        });
-      }
-    });
+    holdBleRuntime.disconnect();
   }
 });

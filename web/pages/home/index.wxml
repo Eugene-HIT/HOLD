@@ -2,145 +2,193 @@
   <view class="home-hero">
     <view class="hero-row">
       <view>
-        <view class="hero-badge">USER PREVIEW</view>
-        <view class="hero-title">HOLD 健康主页</view>
-        <view class="hero-subtitle">先保留调试链路，用户界面以主动检测、当日分析和近期建议为主。</view>
+        <view class="hero-badge">HOLD</view>
+        <view class="hero-title">用户主页</view>
+        <view class="hero-subtitle">连接、校准和关键引导信息都收敛在首页显眼位置，调试页只做诊断查看。</view>
       </view>
       <view class="debug-entry" bindtap="openDebugPage">调试页</view>
     </view>
 
+    <view class="hero-actions">
+      <button class="hero-primary" bindtap="handleScanAndConnect">扫描并连接</button>
+      <button class="hero-secondary" bindtap="disconnectDevice">断开连接</button>
+      <button class="hero-ghost" bindtap="clearAllCachedData">删除所有数据缓存</button>
+      <button class="hero-guide" bindtap="startBreathGuide">开启呼吸引导</button>
+    </view>
+
     <view class="hero-metrics">
       <view class="hero-chip">
-        <text class="chip-label">最近检测</text>
-        <text class="chip-value">{{latestMeasurement.startedAt}}</text>
+        <text class="chip-label">设备</text>
+        <text class="chip-value">{{deviceName || '未连接'}}</text>
       </view>
       <view class="hero-chip">
-        <text class="chip-label">今日平均心率</text>
-        <text class="chip-value">{{latestDaily.heartRateAvg}} bpm</text>
+        <text class="chip-label">适配器</text>
+        <text class="chip-value">{{adapterStatus}}</text>
       </view>
       <view class="hero-chip">
-        <text class="chip-label">近期准备度</text>
-        <text class="chip-value">{{homeOverview.readinessScore}} / 100</text>
+        <text class="chip-label">连接</text>
+        <text class="chip-value">{{connectionStatus}}</text>
       </view>
     </view>
+
+  </view>
+
+  <view class="module-card calibration-card">
+    <view class="module-tag warning">校准与引导</view>
+    <view class="calibration-state">{{currentDeviceState || '未收到设备状态'}}</view>
+    <view class="calibration-guide">{{currentGuideText || '连接设备后，这里会显示大字校准提示。'}}</view>
+    <view class="calibration-phase" wx:if="{{currentPhaseText}}">{{currentPhaseText}}</view>
+    <view class="calibration-meta">
+      <view class="meta-pill" wx:if="{{currentCalibrationStep}}">步骤 {{currentCalibrationStep}}</view>
+      <view class="meta-pill" wx:if="{{phaseRemainingMs}}">剩余 {{phaseRemainingMs}} ms</view>
+      <view class="meta-pill" wx:if="{{currentAxisName && currentDeviceState === 'RESP_CALIBRATING'}}">轴 {{currentAxisName}}</view>
+    </view>
+  </view>
+
+  <view class="module-card metrics-card">
+    <view class="module-header">
+      <view>
+        <view class="module-tag">实时指标</view>
+        <view class="module-title">当前设备上报</view>
+      </view>
+      <view class="module-action" bindtap="openDebugPage">看调试曲线</view>
+    </view>
+
+    <view class="analysis-grid">
+      <view class="analysis-stat breathing">
+        <text class="analysis-number">{{currentRespBpm || '--'}}</text>
+        <text class="analysis-unit">次/分</text>
+        <text class="analysis-label">呼吸 bpm</text>
+      </view>
+      <view class="analysis-stat heartbeat">
+        <text class="analysis-number">{{currentHeartBpm || '--'}}</text>
+        <text class="analysis-unit">bpm</text>
+        <text class="analysis-label">心率 bpm</text>
+      </view>
+      <view class="analysis-stat stability">
+        <text class="analysis-number">{{currentBeatCount || '--'}}</text>
+        <text class="analysis-unit">次</text>
+        <text class="analysis-label">当前 beat 数</text>
+      </view>
+    </view>
+
+    <view class="summary-strip compact">
+      <view class="summary-pill">
+        <text class="summary-value">{{currentMotionLevel || '--'}}</text>
+        <text class="summary-label">motion</text>
+      </view>
+      <view class="summary-pill">
+        <text class="summary-value">{{currentBeatCount || '--'}}</text>
+        <text class="summary-label">beat count</text>
+      </view>
+      <view class="summary-pill">
+        <text class="summary-value">{{debugLogCount || '--'}}</text>
+        <text class="summary-label">调试日志条数</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="module-card">
+    <view class="module-header">
+      <view>
+        <view class="module-tag">最近摘要</view>
+        <view class="module-title">真实缓存摘要</view>
+      </view>
+    </view>
+    <view class="module-copy" wx:if="{{latestPassiveWindowText}}">{{latestPassiveWindowText}}</view>
+    <view class="module-copy" wx:if="{{latestActiveWindowText}}">{{latestActiveWindowText}}</view>
+    <view class="empty-copy" wx:if="{{!latestPassiveWindowText && !latestActiveWindowText}}">暂无真实缓存摘要，收到窗口后会在这里长期保留。</view>
   </view>
 
   <view class="module-card highlight-card">
     <view class="module-header">
       <view>
         <view class="module-tag">主动检测</view>
-        <view class="module-title">指部 PPG 历史与报告</view>
+        <view class="module-title">指部 PPG 报告</view>
       </view>
-      <view class="module-action" bindtap="openActiveHistory">查看历史</view>
+      <view class="module-action" bindtap="openLatestReport">查看详情</view>
     </view>
 
-    <view class="summary-strip">
+    <view class="summary-strip compact" wx:if="{{activeMeasurements.length}}">
       <view class="summary-pill">
-        <text class="summary-value">{{latestMeasurement.resultTag}}</text>
+        <text class="summary-value">{{activeMeasurements[0].resultTag}}</text>
         <text class="summary-label">结果状态</text>
       </view>
       <view class="summary-pill">
-        <text class="summary-value">{{latestMeasurement.durationLabel}}</text>
+        <text class="summary-value">{{activeMeasurements[0].durationLabel}}</text>
         <text class="summary-label">检测时长</text>
       </view>
       <view class="summary-pill">
-        <text class="summary-value">{{latestMeasurement.metrics[0].value}}</text>
+        <text class="summary-value">{{activeMeasurements[0].metrics[0].value}}</text>
         <text class="summary-label">平均心率</text>
       </view>
     </view>
 
-    <view class="mini-chart">
-      <view class="mini-chart-title">最近一次检测波形摘要</view>
-      <view class="chart-columns">
-        <block wx:for="{{latestMeasurement.waveformMoments}}" wx:key="label">
-          <view class="chart-column">
-            <view class="chart-bar-wrap">
-              <view class="chart-bar active-bar" style="height: {{item.value}}rpx"></view>
-            </view>
-            <view class="chart-label">{{item.label}}</view>
-          </view>
-        </block>
-      </view>
+    <view class="module-copy" wx:if="{{activeMeasurements.length}}">{{activeMeasurements[0].summary}}</view>
+    <view class="module-copy" wx:if="{{activeMeasurements.length}}">{{activeMeasurements[0].briefAnalysis}}</view>
+    <view class="module-copy" wx:if="{{activeMeasurements.length}}">{{activeMeasurements[0].briefAdvice}}</view>
+    <view class="module-copy subtle-copy" wx:if="{{activeMeasurements.length}}">点击右上角“查看详情”后，会进入指部 PPG 波形与报告详情页。这里保留最近一次 1 分钟检测的预览。</view>
+
+    <view class="chart-panel-lite" wx:if="{{activeMeasurements.length}}" bindtap="openLatestReportCard">
+      <view class="mini-chart-title">最近一次指部 PPG 曲线与跳点</view>
+      <canvas canvas-id="homeActivePpgCanvas" class="mini-wave-canvas" style="width: {{chartWidth}}px; height: {{chartHeight}}px;" width="{{chartWidth}}" height="{{chartHeight}}"></canvas>
     </view>
 
-    <view class="module-copy">{{latestMeasurement.summary}}</view>
-
-    <view class="double-actions">
-      <button class="solid-button" bindtap="openActiveHistory">检测历史</button>
-      <button class="outline-button" bindtap="openLatestReport">最近报告</button>
-    </view>
+    <view class="module-copy subtle-copy" wx:if="{{activeMeasurements.length && activeMeasurements[0].generatedReportUpdatedAt}}">最近报告 {{activeMeasurements[0].generatedReportUpdatedAt}} · {{activeMeasurements[0].generatedReportSource || 'unknown'}}</view>
+    <view class="module-copy subtle-copy" wx:if="{{activeMeasurements.length && activeMeasurements[0].generatedReportText}}">{{activeMeasurements[0].generatedReportText}}</view>
+    <view class="module-copy subtle-copy" wx:if="{{activeMeasurements.length && activeMeasurements[0].generatedReportError}}">错误 {{activeMeasurements[0].generatedReportError}}</view>
+    <view class="empty-copy" wx:if="{{!activeMeasurements.length}}">暂无指部主动检测记录。完成一次 60 秒主动检测后，这里会保留报告摘要。</view>
   </view>
 
-  <view class="module-card analysis-card">
+  <view class="module-card">
     <view class="module-header">
       <view>
-        <view class="module-tag">当日分析</view>
-        <view class="module-title">呼吸与心跳分析</view>
+        <view class="module-tag">被动监测</view>
+        <view class="module-title">呼吸报告与当天心率报告</view>
       </view>
       <view class="module-action" bindtap="openDailyAnalysis">查看详情</view>
     </view>
 
-    <view class="analysis-grid">
+    <view class="analysis-grid" wx:if="{{dailyAnalyses.length}}">
       <view class="analysis-stat breathing">
-        <text class="analysis-number">{{latestDaily.respirationAvg}}</text>
+        <text class="analysis-number">{{dailyAnalyses[0].respirationAvg}}</text>
         <text class="analysis-unit">次/分</text>
         <text class="analysis-label">平均呼吸率</text>
       </view>
       <view class="analysis-stat heartbeat">
-        <text class="analysis-number">{{latestDaily.heartRateAvg}}</text>
+        <text class="analysis-number">{{dailyAnalyses[0].heartRateAvg || '--'}}</text>
         <text class="analysis-unit">bpm</text>
         <text class="analysis-label">平均心率</text>
       </view>
       <view class="analysis-stat stability">
-        <text class="analysis-number">{{latestDaily.stabilityScore}}</text>
-        <text class="analysis-unit">/100</text>
-        <text class="analysis-label">稳定度</text>
+        <text class="analysis-number">{{dailyAnalyses[0].windowCount || '--'}}</text>
+        <text class="analysis-unit">个</text>
+        <text class="analysis-label">窗口数</text>
       </view>
     </view>
 
-    <view class="line-preview">
-      <view class="line-preview-title">近 7 个时段趋势占位</view>
-      <view class="line-track">
-        <block wx:for="{{latestDaily.heartRateBars}}" wx:key="index">
-          <view class="spark-node" style="height: {{item}}rpx"></view>
-        </block>
-      </view>
-    </view>
-
-    <view class="module-copy">{{latestDaily.insight}}</view>
+    <view class="module-copy" wx:if="{{dailyAnalyses.length}}">{{dailyAnalyses[0].summary}}</view>
+    <view class="module-copy" wx:if="{{dailyAnalyses.length}}">{{dailyAnalyses[0].insight}}</view>
+    <view class="module-copy" wx:if="{{dailyAnalyses.length}}">{{dailyAnalyses[0].suggestion}}</view>
+    <view class="empty-copy" wx:if="{{!dailyAnalyses.length}}">暂无按日归档的呼吸与心率摘要。收到被动窗口后会持续保留近一段时间数据。</view>
   </view>
 
-  <view class="module-card advice-card">
-    <view class="module-header simple">
+  <view class="module-card">
+    <view class="module-header">
       <view>
-        <view class="module-tag">近期建议</view>
-        <view class="module-title">综合考量与建议</view>
+        <view class="module-tag">总结板块</view>
+        <view class="module-title">整体分析与建议</view>
       </view>
-      <view class="ring-shell">
-        <view class="ring-core">{{readinessRing}}</view>
-      </view>
+      <view class="module-action" bindtap="openOverallAnalysis">查看详情</view>
     </view>
 
-    <view class="advice-copy">{{homeOverview.recentAdvice}}</view>
+    <view class="module-copy">{{overallSummary.summary || '暂无整体分析。'}}</view>
+    <view class="module-copy">{{overallSummary.advice || '连接设备并积累数据后，这里会生成建议。'}}</view>
+    <view class="module-copy subtle-copy">{{insightStatus === 'running' ? '正在更新简要分析...' : (overallSummary.updatedAt ? '最近更新 ' + overallSummary.updatedAt : '尚未生成分析')}}</view>
 
-    <view class="trend-card">
-      <view class="trend-title">近期综合评分趋势占位</view>
-      <view class="trend-bars">
-        <block wx:for="{{homeOverview.trendSeries}}" wx:key="index">
-          <view class="trend-item">
-            <view class="trend-bar" style="height: {{item}}rpx"></view>
-          </view>
-        </block>
-      </view>
-    </view>
-
-    <view class="bullet-list">
-      <block wx:for="{{homeOverview.recommendationBullets}}" wx:key="index">
-        <view class="bullet-row">
-          <view class="bullet-dot"></view>
-          <view class="bullet-text">{{item}}</view>
-        </view>
-      </block>
+    <view class="double-actions">
+      <button class="solid-button" bindtap="openOverallAnalysis">整体分析页</button>
+      <button class="outline-button" bindtap="refreshOverallInsight">刷新分析</button>
     </view>
   </view>
 </view>

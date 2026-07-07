@@ -1,0 +1,2 @@
+fw\esptool.exe --chip esp32s3 --baud 115200  --before default_reset --after hard_reset write_flash  -z --flash_mode dio --flash_freq 80m --flash_size 8MB 0x0 fw\uf2.bootloader.bin 0x8000 fw\uf2.partitions.bin 0xe000 fw\ota_init.bin 0x410000 fw\uf2.bin
+pause

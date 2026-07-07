@@ -28,7 +28,16 @@
   "compileType": "miniprogram",
   "simulatorPluginLibVersion": {},
   "packOptions": {
-    "ignore": [],
+    "ignore": [
+      {
+        "type": "folder",
+        "value": "hold-progress-wall"
+      },
+      {
+        "type": "folder",
+        "value": "miniapp_ble_link_test"
+      }
+    ],
     "include": []
   },
   "editorSetting": {},
