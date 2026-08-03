@@ -5,6 +5,12 @@ app.py
 
 提供 PPG 信号情感检测 API，接收设备时间戳和信号数据，返回三分类结果（基线/压力/愉悦）。
 
+预处理流程与项目根目录 preprocess.py 完全一致:
+  原始信号 -> 基于时间戳线性插值重采样到 50Hz
+          -> 0.5-10Hz 带通滤波(Butterworth order=2)
+          -> 按窗口长度切分(默认 30s, 可通过 PPG_WINDOW_SEC 环境变量配置)
+          -> 每段做百分位 z-score 归一化(percentile=90)
+
 部署方式：
 1. 将本目录打包为 Docker 镜像上传至微信云托管
 2. 小程序端使用 wx.cloud.callContainer 调用
@@ -21,6 +27,16 @@ app = Flask(__name__)
 MODEL_DIR = os.path.join(os.path.dirname(__file__), "models")
 ONNX_PATH = os.path.join(MODEL_DIR, "pulseppg_encoder.onnx")
 NPZ_PATH = os.path.join(MODEL_DIR, "head_params.npz")
+
+# 预处理参数（与项目根 config.py / preprocess.py 保持一致）
+TARGET_HZ = 50
+BANDPASS_LOW = 0.5
+BANDPASS_HIGH = 10.0
+BANDPASS_ORDER = 2
+ZNORM_PERCENTILE = 90
+# 默认 30s 窗口(与 config.WINDOW_SEC 一致); 通过环境变量可改回 60 兼容旧部署
+WINDOW_SEC = int(os.environ.get("PPG_WINDOW_SEC", "30"))
+STRIDE_SEC = int(os.environ.get("PPG_STRIDE_SEC", str(WINDOW_SEC // 2)))
 
 # 全局缓存
 _sess = None
@@ -43,32 +59,71 @@ def load_models():
         _clf_params = np.load(NPZ_PATH)
 
 
-def process_array_to_segments(t_ms: np.ndarray, sig: np.ndarray) -> np.ndarray:
-    if len(t_ms) == 0 or len(sig) == 0:
-        return np.array([]).reshape(0, 3000)
+# ============ 预处理函数（与 preprocess.py 一致）============
+def resample_to_fixed_hz(t_ms: np.ndarray, sig: np.ndarray, target_hz: int = TARGET_HZ) -> np.ndarray:
+    """基于真实时间戳做线性插值重采样到均匀 target_hz。"""
+    t_s = (t_ms - t_ms[0]) / 1000.0
+    duration = t_s[-1]
+    n_samples = int(duration * target_hz) + 1
+    new_t = np.arange(n_samples) / target_hz
+    return np.interp(new_t, t_s, sig)
 
-    start_time = t_ms[0]
-    window_sec = 60
-    target_hz = 50
-    window_len = window_sec * target_hz
-    window_ms = window_sec * 1000
 
+def bandpass_filter(sig: np.ndarray, fs: int = TARGET_HZ,
+                    low: float = BANDPASS_LOW, high: float = BANDPASS_HIGH,
+                    order: int = BANDPASS_ORDER) -> np.ndarray:
+    """0.5-10Hz 带通滤波(Butterworth order=2), 与 preprocess.py 一致。"""
+    from scipy.signal import butter, filtfilt
+    nyq = fs / 2
+    b, a = butter(order, [low / nyq, high / nyq], btype="band")
+    return filtfilt(b, a, sig)
+
+
+def znorm_percent(sig: np.ndarray, percent: int = ZNORM_PERCENTILE) -> np.ndarray:
+    """百分位 z-score 归一化, 与 preprocess.py znorm_percent 完全一致。"""
+    thresh = np.percentile(sig, percent)
+    below = sig[sig < thresh]
+    mean = below.mean()
+    std = below.std()
+    return (sig - mean) / (std + 1e-8)
+
+
+def segment_signal(sig: np.ndarray, fs: int = TARGET_HZ,
+                   window_sec: int = WINDOW_SEC, stride_sec: int = STRIDE_SEC) -> np.ndarray:
+    """滑窗切分, 返回 (n_segments, window_len), 与 preprocess.py segment_signal 一致。"""
+    window_len = int(window_sec * fs)
+    stride_len = int(stride_sec * fs)
+    if len(sig) < window_len:
+        return np.empty((0, window_len), dtype=np.float32)
     segments = []
-    current_start = start_time
-    while current_start + window_ms <= t_ms[-1]:
-        mask = (t_ms >= current_start) & (t_ms < current_start + window_ms)
-        segment_sig = sig[mask]
+    start = 0
+    while start + window_len <= len(sig):
+        segments.append(sig[start:start + window_len])
+        start += stride_len
+    return np.stack(segments).astype(np.float32)
 
-        if len(segment_sig) >= window_len:
-            segment_sig = segment_sig[:window_len]
-        else:
-            pad_len = window_len - len(segment_sig)
-            segment_sig = np.pad(segment_sig, (0, pad_len), mode="edge")
 
-        segments.append(segment_sig)
-        current_start += window_ms
+def process_array_to_segments(t_ms: np.ndarray, sig: np.ndarray) -> np.ndarray:
+    """一站式: 时间戳+原始信号 -> (n_segments, window_len) 归一化片段数组。
 
-    return np.array(segments)
+    与项目根 preprocess.process_csv_to_segments 算法完全一致, 仅输入源不同:
+    - preprocess.py 从 CSV 读取, 这里从 HTTP 请求体读取
+    """
+    if len(t_ms) == 0 or len(sig) == 0:
+        return np.empty((0, int(WINDOW_SEC * TARGET_HZ)), dtype=np.float32)
+
+    # 1. 重采样到 50Hz
+    resampled = resample_to_fixed_hz(t_ms, sig, TARGET_HZ)
+    # 2. 带通滤波
+    filtered = bandpass_filter(resampled, fs=TARGET_HZ)
+    # 3. 滑窗切分
+    segments = segment_signal(filtered, fs=TARGET_HZ,
+                              window_sec=WINDOW_SEC, stride_sec=STRIDE_SEC)
+    if segments.shape[0] == 0:
+        return segments
+    # 4. 逐段百分位 z-norm
+    normed = np.stack([znorm_percent(seg) for seg in segments])
+    return normed
 
 
 def predict(embeddings: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
@@ -118,7 +173,7 @@ def ppg_predict():
         if segments.shape[0] == 0:
             return jsonify({
                 "code": 400,
-                "message": "数据时长不足 60 秒，无法切出完整片段",
+                "message": f"数据时长不足 {WINDOW_SEC} 秒，无法切出完整片段",
                 "data": None
             })
 
@@ -144,6 +199,7 @@ def ppg_predict():
             "code": 0,
             "message": "ok",
             "data": {
+                "window_sec": WINDOW_SEC,
                 "segments_count": int(segments.shape[0]),
                 "predictions": predictions
             }
@@ -160,7 +216,7 @@ def ppg_predict():
 
 @app.route("/health", methods=["GET"])
 def health():
-    return jsonify({"status": "ok"})
+    return jsonify({"status": "ok", "window_sec": WINDOW_SEC})
 
 
 if __name__ == "__main__":
