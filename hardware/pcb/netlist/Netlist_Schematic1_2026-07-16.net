@@ -1,0 +1,1945 @@
+PROTEL NETLIST 2.0
+[
+DESIGNATOR
+U1
+FOOTPRINT
+SOT-23-6_L2.9-W1.6-P0.95-LS2.8-BL
+PARTTYPE
+TPS22810DBVR
+DESCRIPTION
+类型:负载开关;通道数:1;输入控制逻辑:高电平有效;最大连续电流:2A;工作电压:2.7V~18V;导通电阻:79mΩ;
+Component Kind
+Standard
+Add into BOM
+yes
+Convert to PCB
+yes
+Symbol
+TPS22810DBVR
+Designator
+U1
+Device
+TPS22810DBVR
+Unique ID
+gge20
+Name
+TPS22810DBVR
+Reuse Block
+
+Group ID
+
+Channel ID
+
+LCSC Part Name
+2.7 - 18V 导通电阻负载开关，带热保护
+Supplier Part
+C205990
+Manufacturer
+TI(德州仪器)
+Manufacturer Part
+TPS22810DBVR
+Supplier Footprint
+SOT-23-6
+JLCPCB Part Class
+Extended Part
+Datasheet
+https://www.ti.com/cn/lit/gpn/tps22810
+Supplier
+LCSC
+3D Model Title
+SOT-23-6_L2.9-W1.6-H1.5-LS2.8-P0.95
+Type
+负载开关
+Number of Channels
+1
+Control Input Logic
+高电平有效
+Maximum Continuous Current
+2A
+Voltage - Supply
+2.7V~18V
+RDS(on)
+79mΩ
+Operating Temperature	-
+-40℃~+105℃
+Features
+过热保护(OTP)；欠压保护(UVP)
+Description
+类型:负载开关;通道数:1;输入控制逻辑:高电平有效;最大连续电流:2A;工作电压:2.7V~18V;导通电阻:79mΩ;
+
+*
+]
+[
+DESIGNATOR
+R5
+FOOTPRINT
+R0402
+PARTTYPE
+0402WGF2200TCE
+DESCRIPTION
+电阻类型:厚膜电阻;阻值:220Ω;精度:±1%;功率:62.5mW;工作电压:50V;温度系数:±100ppm/℃;
+Component Kind
+Standard
+Add into BOM
+yes
+Convert to PCB
+yes
+Symbol
+0402WGF2200TCE
+Designator
+R5
+Device
+0402WGF2200TCE
+Unique ID
+gge21
+Supplier Footprint
+0402
+3D Model Title
+R0402_L1.0-W0.5-H0.4
+Value
+220Ω
+Name
+220Ω
+Description
+电阻类型:厚膜电阻;阻值:220Ω;精度:±1%;功率:62.5mW;工作电压:50V;温度系数:±100ppm/℃;
+LCSC Part Name
+220Ω ±1% 62.5mW 厚膜电阻
+Supplier Part
+C25091
+Manufacturer
+UNI-ROYAL(厚声)
+Manufacturer Part
+0402WGF2200TCE
+JLCPCB Part Class
+Basic Part
+Datasheet
+https://item.szlcsc.com/datasheet/0402WGF2200TCE/25834.html
+Supplier
+LCSC
+Type
+厚膜电阻
+Tolerance
+±1%
+Power(Watts)
+62.5mW
+Voltage-Supply(Max)
+50V
+Temperature Coefficient
+±100ppm/℃
+Operating Temperature
+-55℃~+155℃
+
+*
+]
+[
+DESIGNATOR
+C12
+FOOTPRINT
+C0402
+PARTTYPE
+GRM1555C1H472JE01D
+DESCRIPTION
+容值:4.7nF;精度:±5%;额定电压:50V;温度系数:C0G;
+Component Kind
+Standard
+Add into BOM
+yes
+Convert to PCB
+yes
+Symbol
+GRM1555C1H472JE01D
+Designator
+C12
+Device
+GRM1555C1H472JE01D
+Unique ID
+gge22
+Supplier Footprint
+0402
+3D Model Title
+C0402_L1.0-W0.5-H0.5
+Value
+4.7nF
+Name
+4.7nF
+Description
+容值:4.7nF;精度:±5%;额定电压:50V;温度系数:C0G;
+LCSC Part Name
+4.7nF ±5% 50V
+Supplier Part
+C1518204
+Manufacturer
+muRata(村田)
+Manufacturer Part
+GRM1555C1H472JE01D
+JLCPCB Part Class
+Extended Part
+Datasheet
+https://item.szlcsc.com/datasheet/GRM1555C1H472JE01D/1609001.html
+Supplier
+LCSC
+Tolerance
+±5%
+Voltage Rating
+50V
+Temperature Coefficient
+C0G
+
+*
+]
+[
+DESIGNATOR
+C10
+FOOTPRINT
+C0603
+PARTTYPE
+CGA0603X5R106K100JT
+DESCRIPTION
+容值:10uF;精度:±10%;额定电压:10V;温度系数:X5R;
+Component Kind
+Standard
+Add into BOM
+yes
+Convert to PCB
+yes
+Symbol
+CGA0603X5R106K100JT
+Designator
+C10
+Device
+CGA0603X5R106K100JT
+Value
+10uF
+Name
+10uF
+Unique ID
+gge7_1
+Supplier Footprint
+0603
+3D Model Title
+C0603_L1.6-W0.8-H0.8
+Description
+容值:10uF;精度:±10%;额定电压:10V;温度系数:X5R;
+LCSC Part Name
+10uF ±10% 10V
+Supplier Part
+C6119842
+Manufacturer
+HRE(芯声)
+Manufacturer Part
+CGA0603X5R106K100JT
+JLCPCB Part Class
+Extended Part
+Datasheet
+https://item.szlcsc.com/datasheet/CGA0603X5R106K100JT/7062548.html
+Supplier
+LCSC
+Tolerance
+±10%
+Voltage Rating
+10V
+Temperature Coefficient
+X5R
+
+*
+]
+[
+DESIGNATOR
+U3马达驱动
+FOOTPRINT
+VSSOP-10_L3.0-W3.0-P0.50-LS4.9-BL
+PARTTYPE
+DRV2605LDGSR
+DESCRIPTION
+DRV2605L 具有 2V 工作电压、波形库和自动谐振跟踪功能的 ERM/LRA 触觉驱动器
+Component Kind
+Standard
+Add into BOM
+yes
+Convert to PCB
+yes
+Symbol
+DRV2605LDGSR
+Designator
+U3马达驱动
+Device
+DRV2605LDGSR
+Unique ID
+gge3
+Name
+DRV2605LDGSR
+Reuse Block
+
+Group ID
+
+Channel ID
+
+LCSC Part Name
+5.5V电机驱动芯片
+Supplier Part
+C527464
+Manufacturer
+TI(德州仪器)
+Manufacturer Part
+DRV2605LDGSR
+Supplier Footprint
+VSSOP-10-0.5mm
+JLCPCB Part Class
+Extended Part
+Datasheet
+https://www.ti.com/cn/lit/gpn/drv2605l
+Supplier
+LCSC
+3D Model Title
+VSSOP-10_L3.0-W3.0-H1.1-LS4.9-P0.50
+Technology
+是
+Number of H-bridges
+1
+Output Current
+-
+Peak Current
+-
+Voltage - Supply
+2V~5.2V
+Interface
+I2C
+RDS(on)
+-
+Quiescent Current(Iq)
+500uA
+Operating Temperature
+-40℃~+85℃
+Description
+DRV2605L 具有 2V 工作电压、波形库和自动谐振跟踪功能的 ERM/LRA 触觉驱动器
+
+*
+]
+[
+DESIGNATOR
+R3
+FOOTPRINT
+R0402
+PARTTYPE
+0402WGF2201TCE
+DESCRIPTION
+电阻类型:厚膜电阻;阻值:2.2kΩ;精度:±1%;功率:62.5mW;工作电压:50V;温度系数:±100ppm/℃;
+Component Kind
+Standard
+Add into BOM
+yes
+Convert to PCB
+yes
+Symbol
+0402WGF2201TCE
+Designator
+R3
+Device
+0402WGF2201TCE
+Unique ID
+gge17
+Supplier Footprint
+0402
+3D Model Title
+R0402_L1.0-W0.5-H0.4
+Value
+2.2kΩ
+Name
+2.2kΩ
+Description
+电阻类型:厚膜电阻;阻值:2.2kΩ;精度:±1%;功率:62.5mW;工作电压:50V;温度系数:±100ppm/℃;
+LCSC Part Name
+2.2kΩ ±1% 62.5mW 厚膜电阻
+Supplier Part
+C25879
+Manufacturer
+UNI-ROYAL(厚声)
+Manufacturer Part
+0402WGF2201TCE
+JLCPCB Part Class
+Basic Part
+Datasheet
+https://item.szlcsc.com/datasheet/0402WGF2201TCE/26622.html
+Supplier
+LCSC
+Type
+厚膜电阻
+Tolerance
+±1%
+Power(Watts)
+62.5mW
+Voltage-Supply(Max)
+50V
+Temperature Coefficient
+±100ppm/℃
+Operating Temperature
+-55℃~+155℃
+
+*
+]
+[
+DESIGNATOR
+R4
+FOOTPRINT
+R0402
+PARTTYPE
+0402WGF2201TCE
+DESCRIPTION
+电阻类型:厚膜电阻;阻值:2.2kΩ;精度:±1%;功率:62.5mW;工作电压:50V;温度系数:±100ppm/℃;
+Component Kind
+Standard
+Add into BOM
+yes
+Convert to PCB
+yes
+Symbol
+0402WGF2201TCE
+Designator
+R4
+Device
+0402WGF2201TCE
+Unique ID
+gge18
+Supplier Footprint
+0402
+3D Model Title
+R0402_L1.0-W0.5-H0.4
+Value
+2.2kΩ
+Name
+2.2kΩ
+Description
+电阻类型:厚膜电阻;阻值:2.2kΩ;精度:±1%;功率:62.5mW;工作电压:50V;温度系数:±100ppm/℃;
+LCSC Part Name
+2.2kΩ ±1% 62.5mW 厚膜电阻
+Supplier Part
+C25879
+Manufacturer
+UNI-ROYAL(厚声)
+Manufacturer Part
+0402WGF2201TCE
+JLCPCB Part Class
+Basic Part
+Datasheet
+https://item.szlcsc.com/datasheet/0402WGF2201TCE/26622.html
+Supplier
+LCSC
+Type
+厚膜电阻
+Tolerance
+±1%
+Power(Watts)
+62.5mW
+Voltage-Supply(Max)
+50V
+Temperature Coefficient
+±100ppm/℃
+Operating Temperature
+-55℃~+155℃
+
+*
+]
+[
+DESIGNATOR
+C9
+FOOTPRINT
+C0603
+PARTTYPE
+CGA0603X5R105K500JT
+DESCRIPTION
+容值:1uF;精度:±10%;额定电压:50V;温度系数:X5R;
+Component Kind
+Standard
+Add into BOM
+yes
+Convert to PCB
+yes
+Symbol
+CGA0603X5R105K500JT
+Designator
+C9
+Device
+CGA0603X5R105K500JT
+Value
+1uF
+Name
+1uF
+Unique ID
+gge7_0
+Supplier Footprint
+0603
+3D Model Title
+C0603_L1.6-W0.8-H0.8
+Description
+容值:1uF;精度:±10%;额定电压:50V;温度系数:X5R;
+LCSC Part Name
+1uF ±10% 50V
+Supplier Part
+C6119852
+Manufacturer
+HRE(芯声)
+Manufacturer Part
+CGA0603X5R105K500JT
+JLCPCB Part Class
+Extended Part
+Datasheet
+https://item.szlcsc.com/datasheet/CGA0603X5R105K500JT/7062558.html
+Supplier
+LCSC
+Tolerance
+±10%
+Voltage Rating
+50V
+Temperature Coefficient
+X5R
+
+*
+]
+[
+DESIGNATOR
+C11
+FOOTPRINT
+C0603
+PARTTYPE
+CGA0603X5R105K500JT
+DESCRIPTION
+容值:1uF;精度:±10%;额定电压:50V;温度系数:X5R;
+Component Kind
+Standard
+Add into BOM
+yes
+Convert to PCB
+yes
+Symbol
+CGA0603X5R105K500JT
+Designator
+C11
+Device
+CGA0603X5R105K500JT
+Value
+1uF
+Name
+1uF
+Unique ID
+gge7_2
+Supplier Footprint
+0603
+3D Model Title
+C0603_L1.6-W0.8-H0.8
+Description
+容值:1uF;精度:±10%;额定电压:50V;温度系数:X5R;
+LCSC Part Name
+1uF ±10% 50V
+Supplier Part
+C6119852
+Manufacturer
+HRE(芯声)
+Manufacturer Part
+CGA0603X5R105K500JT
+JLCPCB Part Class
+Extended Part
+Datasheet
+https://item.szlcsc.com/datasheet/CGA0603X5R105K500JT/7062558.html
+Supplier
+LCSC
+Tolerance
+±10%
+Voltage Rating
+50V
+Temperature Coefficient
+X5R
+
+*
+]
+[
+DESIGNATOR
+U2
+FOOTPRINT
+QFN-24_L4.0-W4.0-P0.50-BL-EP2.7
+PARTTYPE
+MPU-6050
+DESCRIPTION
+传感器类型:IMU(加速度计+陀螺仪);接口类型:I2C;
+Component Kind
+Standard
+Add into BOM
+yes
+Convert to PCB
+yes
+Symbol
+MPU-6050_C24112
+Designator
+U2
+Device
+MPU-6050
+Unique ID
+gge23
+Name
+MPU-6050
+Reuse Block
+
+Group ID
+
+Channel ID
+
+LCSC Part Name
+MPU-6050
+Supplier Part
+C24112
+Manufacturer
+TDK InvenSense(应美盛)
+Manufacturer Part
+MPU-6050
+Supplier Footprint
+QFN-24-EP(4x4)
+JLCPCB Part Class
+Extended Part
+Datasheet
+https://item.szlcsc.com/datasheet/MPU-6050/24852.html
+Supplier
+LCSC
+3D Model Title
+QFN-24_L4.0-W4.0-P0.50-BL-EP2.7
+Accelerometer Sensing Axis
+X,Y,Z
+Acceleration Measurement Range (MAX)
+±16g
+Gyroscope Sensing Axis
+X,Y,Z
+Gyroscope Measurement Range (MAX)
+±2000dps
+Sensor Type
+IMU(加速度计+陀螺仪)
+Output Bits
+16bit
+Interface
+I2C
+Voltage - Supply
+2.375V~3.46V
+Cache Size
+1KB
+Standby Current
+5uA
+Operating Temperature
+-40℃~+85℃
+Features
+运动事件检测；同步与时间戳
+Description
+传感器类型:IMU(加速度计+陀螺仪);接口类型:I2C;
+
+*
+]
+[
+DESIGNATOR
+C1
+FOOTPRINT
+C0402
+PARTTYPE
+CC0402KRX7R9BB103
+DESCRIPTION
+容值:10nF;精度:±10%;额定电压:50V;温度系数:X7R;
+Component Kind
+Standard
+Add into BOM
+yes
+Convert to PCB
+yes
+Symbol
+CC0402KRX7R9BB103
+Designator
+C1
+Device
+CC0402KRX7R9BB103
+Unique ID
+gge22_0
+Supplier Footprint
+0402
+3D Model Title
+C0402_L1.0-W0.5-H0.5
+Value
+10nF
+Name
+10nF
+Description
+容值:10nF;精度:±10%;额定电压:50V;温度系数:X7R;
+LCSC Part Name
+10nF ±10% 50V
+Supplier Part
+C60133
+Manufacturer
+YAGEO(国巨)
+Manufacturer Part
+CC0402KRX7R9BB103
+JLCPCB Part Class
+Extended Part
+Datasheet
+https://item.szlcsc.com/datasheet/CC0402KRX7R9BB103/61185.html
+Supplier
+LCSC
+Tolerance
+±10%
+Voltage Rating
+50V
+Temperature Coefficient
+X7R
+
+*
+]
+[
+DESIGNATOR
+C2
+FOOTPRINT
+C0603
+PARTTYPE
+CL10B104KB8NNNC
+DESCRIPTION
+容值:100nF;精度:±10%;额定电压:50V;温度系数:X7R;
+Component Kind
+Standard
+Add into BOM
+yes
+Convert to PCB
+yes
+Symbol
+CL10B104KB8NNNC
+Designator
+C2
+Device
+CL10B104KB8NNNC
+Value
+100nF
+Name
+100nF
+Unique ID
+gge7_3
+Supplier Footprint
+0603
+3D Model Title
+C0603_L1.6-W0.8-H0.8
+Description
+容值:100nF;精度:±10%;额定电压:50V;温度系数:X7R;
+LCSC Part Name
+100nF ±10% 50V
+Supplier Part
+C1591
+Manufacturer
+SAMSUNG(三星)
+Manufacturer Part
+CL10B104KB8NNNC
+JLCPCB Part Class
+Extended Part
+Datasheet
+https://item.szlcsc.com/datasheet/CL10B104KB8NNNC/1943.html
+Supplier
+LCSC
+Tolerance
+±10%
+Voltage Rating
+50V
+Temperature Coefficient
+X7R
+
+*
+]
+[
+DESIGNATOR
+C3
+FOOTPRINT
+C0603
+PARTTYPE
+CL10B104KB8NNNC
+DESCRIPTION
+容值:100nF;精度:±10%;额定电压:50V;温度系数:X7R;
+Component Kind
+Standard
+Add into BOM
+yes
+Convert to PCB
+yes
+Symbol
+CL10B104KB8NNNC
+Designator
+C3
+Device
+CL10B104KB8NNNC
+Value
+100nF
+Name
+100nF
+Unique ID
+gge7_4
+Supplier Footprint
+0603
+3D Model Title
+C0603_L1.6-W0.8-H0.8
+Description
+容值:100nF;精度:±10%;额定电压:50V;温度系数:X7R;
+LCSC Part Name
+100nF ±10% 50V
+Supplier Part
+C1591
+Manufacturer
+SAMSUNG(三星)
+Manufacturer Part
+CL10B104KB8NNNC
+JLCPCB Part Class
+Extended Part
+Datasheet
+https://item.szlcsc.com/datasheet/CL10B104KB8NNNC/1943.html
+Supplier
+LCSC
+Tolerance
+±10%
+Voltage Rating
+50V
+Temperature Coefficient
+X7R
+
+*
+]
+[
+DESIGNATOR
+C4
+FOOTPRINT
+C0402
+PARTTYPE
+CC0402KRX7R9BB222
+DESCRIPTION
+容值:2.2nF;精度:±10%;额定电压:50V;温度系数:X7R;
+Component Kind
+Standard
+Add into BOM
+yes
+Convert to PCB
+yes
+Symbol
+CC0402KRX7R9BB222
+Designator
+C4
+Device
+CC0402KRX7R9BB222
+Unique ID
+gge22_1
+Supplier Footprint
+0402
+3D Model Title
+C0402_L1.0-W0.5-H0.5
+Value
+2.2nF
+Name
+2.2nF
+Description
+容值:2.2nF;精度:±10%;额定电压:50V;温度系数:X7R;
+LCSC Part Name
+2.2nF ±10% 50V
+Supplier Part
+C106861
+Manufacturer
+YAGEO(国巨)
+Manufacturer Part
+CC0402KRX7R9BB222
+JLCPCB Part Class
+Extended Part
+Datasheet
+https://item.szlcsc.com/datasheet/CC0402KRX7R9BB222/108077.html
+Supplier
+LCSC
+Tolerance
+±10%
+Voltage Rating
+50V
+Temperature Coefficient
+X7R
+
+*
+]
+[
+DESIGNATOR
+R1
+FOOTPRINT
+R0402
+PARTTYPE
+FRC0402F4701TS
+DESCRIPTION
+电阻类型:厚膜电阻;阻值:4.7kΩ;精度:±1%;功率:62.5mW;工作电压:50V;温度系数:±100ppm/℃;
+Component Kind
+Standard
+Add into BOM
+yes
+Convert to PCB
+yes
+Symbol
+FRC0402F4701TS
+Designator
+R1
+Device
+FRC0402F4701TS
+Unique ID
+gge17_0
+Supplier Footprint
+0402
+3D Model Title
+R0402_L1.0-W0.5-H0.4
+Value
+4.7kΩ
+Name
+4.7kΩ
+Description
+电阻类型:厚膜电阻;阻值:4.7kΩ;精度:±1%;功率:62.5mW;工作电压:50V;温度系数:±100ppm/℃;
+LCSC Part Name
+4.7kΩ ±1% 62.5mW 厚膜电阻
+Supplier Part
+C2906869
+Manufacturer
+FOJAN(富捷)
+Manufacturer Part
+FRC0402F4701TS
+JLCPCB Part Class
+Extended Part
+Datasheet
+https://item.szlcsc.com/datasheet/FRC0402F4701TS/3180382.html
+Supplier
+LCSC
+Type
+厚膜电阻
+Tolerance
+±1%
+Power(Watts)
+62.5mW
+Voltage-Supply(Max)
+50V
+Temperature Coefficient
+±100ppm/℃
+Operating Temperature
+-55℃~+155℃
+
+*
+]
+[
+DESIGNATOR
+R2
+FOOTPRINT
+R0402
+PARTTYPE
+FRC0402F4701TS
+DESCRIPTION
+电阻类型:厚膜电阻;阻值:4.7kΩ;精度:±1%;功率:62.5mW;工作电压:50V;温度系数:±100ppm/℃;
+Component Kind
+Standard
+Add into BOM
+yes
+Convert to PCB
+yes
+Symbol
+FRC0402F4701TS
+Designator
+R2
+Device
+FRC0402F4701TS
+Unique ID
+gge17_1
+Supplier Footprint
+0402
+3D Model Title
+R0402_L1.0-W0.5-H0.4
+Value
+4.7kΩ
+Name
+4.7kΩ
+Description
+电阻类型:厚膜电阻;阻值:4.7kΩ;精度:±1%;功率:62.5mW;工作电压:50V;温度系数:±100ppm/℃;
+LCSC Part Name
+4.7kΩ ±1% 62.5mW 厚膜电阻
+Supplier Part
+C2906869
+Manufacturer
+FOJAN(富捷)
+Manufacturer Part
+FRC0402F4701TS
+JLCPCB Part Class
+Extended Part
+Datasheet
+https://item.szlcsc.com/datasheet/FRC0402F4701TS/3180382.html
+Supplier
+LCSC
+Type
+厚膜电阻
+Tolerance
+±1%
+Power(Watts)
+62.5mW
+Voltage-Supply(Max)
+50V
+Temperature Coefficient
+±100ppm/℃
+Operating Temperature
+-55℃~+155℃
+
+*
+]
+[
+DESIGNATOR
+Q1
+FOOTPRINT
+SOT-23-3_L2.9-W1.3-P1.90-LS2.4-BR
+PARTTYPE
+AO3400A_C20917
+DESCRIPTION
+数量:-;漏源电压(Vdss):30V;连续漏极电流(Id):-;导通电阻(RDS(on)):48mΩ@2.5V;耗散功率(Pd):-;阈值电压(Vgs(th)):1.45V@250uA;
+Component Kind
+Standard
+Add into BOM
+yes
+Convert to PCB
+yes
+Symbol
+AO3400A
+Designator
+Q1
+Device
+AO3400A_C20917
+Unique ID
+gge24
+Name
+AO3400A
+Reuse Block
+
+Group ID
+
+Channel ID
+
+LCSC Part Name
+1个N沟道 耐压:30V 电流:5.7A
+Supplier Part
+C20917
+Manufacturer
+AOS
+Manufacturer Part
+AO3400A
+Supplier Footprint
+SOT-23-3L
+JLCPCB Part Class
+Basic Part
+Datasheet
+https://item.szlcsc.com/datasheet/AO3400A/21629.html
+Supplier
+LCSC
+3D Model Title
+SOT-23-3P_L2.9-W1.3-H1.0-LS2.4-P0.95
+Number
+-
+Drain to Source Voltage
+30V
+Current - Continuous Drain(Id)
+-
+RDS(on)
+48mΩ@2.5V
+Pd - Power Dissipation
+-
+Gate Threshold Voltage (Vgs(th))
+1.45V@250uA
+Gate Charge(Qg)
+7nC@10V
+Input Capacitance(Ciss)
+630pF@15V
+Reverse Transfer Capacitance (Crss@Vds)
+-
+Operating Temperature
+-55℃~+150℃@(Tj)
+Configuration
+-
+Type
+N沟道
+Output Capacitance(Coss)
+-
+Description
+数量:-;漏源电压(Vdss):30V;连续漏极电流(Id):-;导通电阻(RDS(on)):48mΩ@2.5V;耗散功率(Pd):-;阈值电压(Vgs(th)):1.45V@250uA;
+
+*
+]
+[
+DESIGNATOR
+R6
+FOOTPRINT
+R0402
+PARTTYPE
+FRC0402F1000TS
+DESCRIPTION
+电阻类型:厚膜电阻;阻值:100Ω;精度:±1%;功率:62.5mW;工作电压:50V;温度系数:±100ppm/℃;
+Component Kind
+Standard
+Add into BOM
+yes
+Convert to PCB
+yes
+Symbol
+FRC0402F1000TS
+Designator
+R6
+Device
+FRC0402F1000TS
+Unique ID
+gge17_2
+Supplier Footprint
+0402
+3D Model Title
+R0402_L1.0-W0.5-H0.4
+Value
+100Ω
+Name
+100Ω
+Description
+电阻类型:厚膜电阻;阻值:100Ω;精度:±1%;功率:62.5mW;工作电压:50V;温度系数:±100ppm/℃;
+LCSC Part Name
+100Ω ±1% 62.5mW 厚膜电阻
+Supplier Part
+C2906860
+Manufacturer
+FOJAN(富捷)
+Manufacturer Part
+FRC0402F1000TS
+JLCPCB Part Class
+Extended Part
+Datasheet
+https://item.szlcsc.com/datasheet/FRC0402F1000TS/3180373.html
+Supplier
+LCSC
+Type
+厚膜电阻
+Tolerance
+±1%
+Power(Watts)
+62.5mW
+Voltage-Supply(Max)
+50V
+Temperature Coefficient
+±100ppm/℃
+Operating Temperature
+-55℃~+155℃
+
+*
+]
+[
+DESIGNATOR
+R7
+FOOTPRINT
+R0402
+PARTTYPE
+FRC0402F1003TS
+DESCRIPTION
+电阻类型:厚膜电阻;阻值:100kΩ;精度:±1%;功率:62.5mW;工作电压:50V;温度系数:±100ppm/℃;
+Component Kind
+Standard
+Add into BOM
+yes
+Convert to PCB
+yes
+Symbol
+FRC0402F1003TS
+Designator
+R7
+Device
+FRC0402F1003TS
+Unique ID
+gge17_3
+Supplier Footprint
+0402
+3D Model Title
+R0402_L1.0-W0.5-H0.4
+Value
+100kΩ
+Name
+100kΩ
+Description
+电阻类型:厚膜电阻;阻值:100kΩ;精度:±1%;功率:62.5mW;工作电压:50V;温度系数:±100ppm/℃;
+LCSC Part Name
+100kΩ ±1% 62.5mW 厚膜电阻
+Supplier Part
+C2906859
+Manufacturer
+FOJAN(富捷)
+Manufacturer Part
+FRC0402F1003TS
+JLCPCB Part Class
+Extended Part
+Datasheet
+https://item.szlcsc.com/datasheet/FRC0402F1003TS/3180372.html
+Supplier
+LCSC
+Type
+厚膜电阻
+Tolerance
+±1%
+Power(Watts)
+62.5mW
+Voltage-Supply(Max)
+50V
+Temperature Coefficient
+±100ppm/℃
+Operating Temperature
+-55℃~+155℃
+
+*
+]
+[
+DESIGNATOR
+C5
+FOOTPRINT
+C0603
+PARTTYPE
+CGA0603X5R106K100JT
+DESCRIPTION
+容值:10uF;精度:±10%;额定电压:10V;温度系数:X5R;
+Component Kind
+Standard
+Add into BOM
+yes
+Convert to PCB
+yes
+Symbol
+CGA0603X5R106K100JT
+Designator
+C5
+Device
+CGA0603X5R106K100JT
+Value
+10uF
+Name
+10uF
+Unique ID
+gge7_5
+Supplier Footprint
+0603
+3D Model Title
+C0603_L1.6-W0.8-H0.8
+Description
+容值:10uF;精度:±10%;额定电压:10V;温度系数:X5R;
+LCSC Part Name
+10uF ±10% 10V
+Supplier Part
+C6119842
+Manufacturer
+HRE(芯声)
+Manufacturer Part
+CGA0603X5R106K100JT
+JLCPCB Part Class
+Extended Part
+Datasheet
+https://item.szlcsc.com/datasheet/CGA0603X5R106K100JT/7062548.html
+Supplier
+LCSC
+Tolerance
+±10%
+Voltage Rating
+10V
+Temperature Coefficient
+X5R
+
+*
+]
+[
+DESIGNATOR
+C6
+FOOTPRINT
+C0603
+PARTTYPE
+CGA0603X5R106K100JT
+DESCRIPTION
+容值:10uF;精度:±10%;额定电压:10V;温度系数:X5R;
+Component Kind
+Standard
+Add into BOM
+yes
+Convert to PCB
+yes
+Symbol
+CGA0603X5R106K100JT
+Designator
+C6
+Device
+CGA0603X5R106K100JT
+Value
+10uF
+Name
+10uF
+Unique ID
+gge7_6
+Supplier Footprint
+0603
+3D Model Title
+C0603_L1.6-W0.8-H0.8
+Description
+容值:10uF;精度:±10%;额定电压:10V;温度系数:X5R;
+LCSC Part Name
+10uF ±10% 10V
+Supplier Part
+C6119842
+Manufacturer
+HRE(芯声)
+Manufacturer Part
+CGA0603X5R106K100JT
+JLCPCB Part Class
+Extended Part
+Datasheet
+https://item.szlcsc.com/datasheet/CGA0603X5R106K100JT/7062548.html
+Supplier
+LCSC
+Tolerance
+±10%
+Voltage Rating
+10V
+Temperature Coefficient
+X5R
+
+*
+]
+[
+DESIGNATOR
+R9
+FOOTPRINT
+R0402
+PARTTYPE
+0402WGF2200TCE
+DESCRIPTION
+电阻类型:厚膜电阻;阻值:220Ω;精度:±1%;功率:62.5mW;工作电压:50V;温度系数:±100ppm/℃;
+Component Kind
+Standard
+Add into BOM
+yes
+Convert to PCB
+yes
+Symbol
+0402WGF2200TCE
+Designator
+R9
+Device
+0402WGF2200TCE
+Unique ID
+gge21_0
+Supplier Footprint
+0402
+3D Model Title
+R0402_L1.0-W0.5-H0.4
+Value
+220Ω
+Name
+220Ω
+Description
+电阻类型:厚膜电阻;阻值:220Ω;精度:±1%;功率:62.5mW;工作电压:50V;温度系数:±100ppm/℃;
+LCSC Part Name
+220Ω ±1% 62.5mW 厚膜电阻
+Supplier Part
+C25091
+Manufacturer
+UNI-ROYAL(厚声)
+Manufacturer Part
+0402WGF2200TCE
+JLCPCB Part Class
+Basic Part
+Datasheet
+https://item.szlcsc.com/datasheet/0402WGF2200TCE/25834.html
+Supplier
+LCSC
+Type
+厚膜电阻
+Tolerance
+±1%
+Power(Watts)
+62.5mW
+Voltage-Supply(Max)
+50V
+Temperature Coefficient
+±100ppm/℃
+Operating Temperature
+-55℃~+155℃
+
+*
+]
+[
+DESIGNATOR
+R10
+FOOTPRINT
+R0402
+PARTTYPE
+FRC0402F4701TS
+DESCRIPTION
+电阻类型:厚膜电阻;阻值:4.7kΩ;精度:±1%;功率:62.5mW;工作电压:50V;温度系数:±100ppm/℃;
+Component Kind
+Standard
+Add into BOM
+yes
+Convert to PCB
+yes
+Symbol
+FRC0402F4701TS
+Designator
+R10
+Device
+FRC0402F4701TS
+Unique ID
+gge17_5
+Supplier Footprint
+0402
+3D Model Title
+R0402_L1.0-W0.5-H0.4
+Value
+4.7kΩ
+Name
+4.7kΩ
+Description
+电阻类型:厚膜电阻;阻值:4.7kΩ;精度:±1%;功率:62.5mW;工作电压:50V;温度系数:±100ppm/℃;
+LCSC Part Name
+4.7kΩ ±1% 62.5mW 厚膜电阻
+Supplier Part
+C2906869
+Manufacturer
+FOJAN(富捷)
+Manufacturer Part
+FRC0402F4701TS
+JLCPCB Part Class
+Extended Part
+Datasheet
+https://item.szlcsc.com/datasheet/FRC0402F4701TS/3180382.html
+Supplier
+LCSC
+Type
+厚膜电阻
+Tolerance
+±1%
+Power(Watts)
+62.5mW
+Voltage-Supply(Max)
+50V
+Temperature Coefficient
+±100ppm/℃
+Operating Temperature
+-55℃~+155℃
+
+*
+]
+[
+DESIGNATOR
+C7
+FOOTPRINT
+C0603
+PARTTYPE
+FCC0603B103K500CT
+DESCRIPTION
+容值:10nF;精度:±10%;额定电压:50V;温度系数:X7R;
+Component Kind
+Standard
+Add into BOM
+yes
+Convert to PCB
+yes
+Symbol
+FCC0603B103K500CT
+Designator
+C7
+Device
+FCC0603B103K500CT
+Value
+10nF
+Name
+10nF
+Unique ID
+gge7_7
+Supplier Footprint
+0603
+3D Model Title
+C0603_L1.6-W0.8-H0.8
+Description
+容值:10nF;精度:±10%;额定电压:50V;温度系数:X7R;
+LCSC Part Name
+10nF ±10% 50V
+Supplier Part
+C5137477
+Manufacturer
+FOJAN(富捷)
+Manufacturer Part
+FCC0603B103K500CT
+JLCPCB Part Class
+Extended Part
+Datasheet
+https://item.szlcsc.com/datasheet/FCC0603B103K500CT/5746979.html
+Supplier
+LCSC
+Tolerance
+±10%
+Voltage Rating
+50V
+Temperature Coefficient
+X7R
+
+*
+]
+[
+DESIGNATOR
+J1
+FOOTPRINT
+FLY_3P
+PARTTYPE
+FLY_3P
+DESCRIPTION
+
+Component Kind
+Standard
+Unique ID
+gge25
+Add into BOM
+yes
+Convert to PCB
+yes
+Designator
+J1
+Symbol
+FLY_3P
+Device
+FLY_3P
+Name
+
+Description
+
+Reuse Block
+
+Group ID
+
+Channel ID
+
+
+*
+]
+[
+DESIGNATOR
+J3
+FOOTPRINT
+FLY_2P_1.27_1.2x2.5
+PARTTYPE
+FLY_2P
+DESCRIPTION
+
+Component Kind
+Standard
+Unique ID
+gge27
+Add into BOM
+yes
+Convert to PCB
+yes
+Designator
+J3
+Symbol
+FLY_2P
+Device
+FLY_2P
+Name
+
+Description
+
+Reuse Block
+
+Group ID
+
+Channel ID
+
+
+*
+]
+[
+DESIGNATOR
+J5
+FOOTPRINT
+FLY_4P
+PARTTYPE
+FLY_4P
+DESCRIPTION
+
+Component Kind
+Standard
+Unique ID
+gge29
+Add into BOM
+yes
+Convert to PCB
+yes
+Designator
+J5
+Symbol
+FLY_4P
+Device
+FLY_4P
+Name
+
+Description
+
+Reuse Block
+
+Group ID
+
+Channel ID
+
+
+*
+]
+[
+DESIGNATOR
+J6
+FOOTPRINT
+FLY_2P_1.27_1.2x2.5
+PARTTYPE
+FLY_2P
+DESCRIPTION
+
+Component Kind
+Standard
+Unique ID
+gge30
+Add into BOM
+yes
+Convert to PCB
+yes
+Designator
+J6
+Symbol
+FLY_2P
+Device
+FLY_2P
+Name
+
+Description
+
+Reuse Block
+
+Group ID
+
+Channel ID
+
+
+*
+]
+[
+DESIGNATOR
+J8
+FOOTPRINT
+FLY_4P
+PARTTYPE
+FLY_4P
+DESCRIPTION
+
+Component Kind
+Standard
+Add into BOM
+yes
+Convert to PCB
+yes
+Designator
+J8
+Symbol
+FLY_4P
+Device
+FLY_4P
+Name
+
+Description
+
+Unique ID
+gge29_0
+Reuse Block
+
+Group ID
+
+Channel ID
+
+
+*
+]
+[
+DESIGNATOR
+J4
+FOOTPRINT
+FLY_3P
+PARTTYPE
+FLY_3P
+DESCRIPTION
+
+Component Kind
+Standard
+Add into BOM
+yes
+Convert to PCB
+yes
+Designator
+J4
+Symbol
+FLY_3P
+Device
+FLY_3P
+Name
+
+Description
+
+Unique ID
+gge25_0
+Reuse Block
+
+Group ID
+
+Channel ID
+
+
+*
+]
+[
+DESIGNATOR
+R8
+FOOTPRINT
+R0402
+PARTTYPE
+FRC0402F1003TS
+DESCRIPTION
+电阻类型:厚膜电阻;阻值:100kΩ;精度:±1%;功率:62.5mW;工作电压:50V;温度系数:±100ppm/℃;
+Component Kind
+Standard
+Add into BOM
+yes
+Convert to PCB
+yes
+Symbol
+FRC0402F1003TS
+Designator
+R8
+Device
+FRC0402F1003TS
+Unique ID
+gge17_6
+Supplier Footprint
+0402
+3D Model Title
+R0402_L1.0-W0.5-H0.4
+Value
+100kΩ
+Name
+100kΩ
+Description
+电阻类型:厚膜电阻;阻值:100kΩ;精度:±1%;功率:62.5mW;工作电压:50V;温度系数:±100ppm/℃;
+LCSC Part Name
+100kΩ ±1% 62.5mW 厚膜电阻
+Supplier Part
+C2906859
+Manufacturer
+FOJAN(富捷)
+Manufacturer Part
+FRC0402F1003TS
+JLCPCB Part Class
+Extended Part
+Datasheet
+https://item.szlcsc.com/datasheet/FRC0402F1003TS/3180372.html
+Supplier
+LCSC
+Type
+厚膜电阻
+Tolerance
+±1%
+Power(Watts)
+62.5mW
+Voltage-Supply(Max)
+50V
+Temperature Coefficient
+±100ppm/℃
+Operating Temperature
+-55℃~+155℃
+
+*
+]
+[
+DESIGNATOR
+J2
+FOOTPRINT
+FLY_3P
+PARTTYPE
+FLY_3P
+DESCRIPTION
+
+Component Kind
+Standard
+Add into BOM
+yes
+Convert to PCB
+yes
+Designator
+J2
+Symbol
+FLY_3P
+Device
+FLY_3P
+Name
+
+Description
+
+Unique ID
+gge25_1
+Reuse Block
+
+Group ID
+
+Channel ID
+
+
+*
+]
+(
+3V3 
+U1-1 TPS22810DBVR-VIN Passive 
+J8-2 FLY_4P-P2 Passive 
+)
+(
+GND 
+U1-2 TPS22810DBVR-GND Passive 
+C12-1 GRM1555C1H472JE01D-1 Passive 
+C10-1 CGA0603X5R106K100JT-1 Passive 
+U3马达驱动-4 DRV2605LDGSR-IN/TRIG Passive 
+U3马达驱动-8 DRV2605LDGSR-GND Passive 
+C9-1 CGA0603X5R105K500JT-1 Passive 
+C11-2 CGA0603X5R105K500JT-2 Passive 
+U2-9 MPU-6050-AD0 Passive 
+U2-18 MPU-6050-GND Passive 
+U2-25 MPU-6050-EP Passive 
+C1-1 CC0402KRX7R9BB103-1 Input   
+C2-1 CL10B104KB8NNNC-1 Passive 
+C3-1 CL10B104KB8NNNC-1 Passive 
+C4-1 CC0402KRX7R9BB222-1 Input   
+Q1-2 AO3400A_C20917-S Passive 
+R7-1 FRC0402F1003TS-1 Passive 
+C5-1 CGA0603X5R106K100JT-1 Passive 
+C6-1 CGA0603X5R106K100JT-1 Passive 
+R10-1 FRC0402F4701TS-1 Passive 
+C7-1 FCC0603B103K500CT-1 Passive 
+J5-3 FLY_4P-P3 Passive 
+J5-4 FLY_4P-P4 Passive 
+J8-4 FLY_4P-P4 Passive 
+R8-1 FRC0402F1003TS-1 Passive 
+)
+(
+TPS_EN 
+U1-3 TPS22810DBVR-EN/UVLO Passive 
+J8-1 FLY_4P-P1 Passive 
+R8-2 FRC0402F1003TS-2 Passive 
+)
+(
+$1N19 
+U1-4 TPS22810DBVR-CT Passive 
+C12-2 GRM1555C1H472JE01D-2 Passive 
+)
+(
+$1N20 
+U1-5 TPS22810DBVR-QOD Passive 
+R5-1 0402WGF2200TCE-1 Input   
+)
+(
+SW_OUT 
+U1-6 TPS22810DBVR-VOUT Passive 
+R5-2 0402WGF2200TCE-2 Input   
+C10-2 CGA0603X5R106K100JT-2 Passive 
+U3马达驱动-10 DRV2605LDGSR-VDD Passive 
+R3-2 0402WGF2201TCE-2 Input   
+R4-2 0402WGF2201TCE-2 Input   
+C9-2 CGA0603X5R105K500JT-2 Passive 
+U2-8 MPU-6050-VLOGIC Passive 
+U2-13 MPU-6050-VDD Passive 
+C1-2 CC0402KRX7R9BB103-2 Input   
+C3-2 CL10B104KB8NNNC-2 Passive 
+R1-2 FRC0402F4701TS-2 Passive 
+R2-2 FRC0402F4701TS-2 Passive 
+J8-3 FLY_4P-P3 Passive 
+J4-1 FLY_3P-P1 Passive 
+)
+(
+$1N31 
+U3马达驱动-1 DRV2605LDGSR-REG Passive 
+C11-1 CGA0603X5R105K500JT-1 Passive 
+)
+(
+M_SCL 
+U3马达驱动-2 DRV2605LDGSR-SCL Passive 
+R4-1 0402WGF2201TCE-1 Input   
+J2-1 FLY_3P-P1 Passive 
+)
+(
+M_SDA 
+U3马达驱动-3 DRV2605LDGSR-SDA Passive 
+R3-1 0402WGF2201TCE-1 Input   
+J2-2 FLY_3P-P2 Passive 
+)
+(
+M_EN 
+U3马达驱动-5 DRV2605LDGSR-EN Passive 
+J2-3 FLY_3P-P3 Passive 
+)
+(
+MOUT+ 
+U3马达驱动-7 DRV2605LDGSR-OUT+ Passive 
+J3-1 FLY_2P-P1 Passive 
+)
+(
+MOUT- 
+U3马达驱动-9 DRV2605LDGSR-OUT- Passive 
+J3-2 FLY_2P-P2 Passive 
+)
+(
+$1N42 
+U2-10 MPU-6050-REGOUT Passive 
+C2-2 CL10B104KB8NNNC-2 Passive 
+)
+(
+$1N56 
+U2-20 MPU-6050-CPOUT Passive 
+C4-2 CC0402KRX7R9BB222-2 Input   
+)
+(
+MPU_SCL 
+U2-23 MPU-6050-SCL Passive 
+R2-1 FRC0402F4701TS-1 Passive 
+J6-1 FLY_2P-P1 Passive 
+)
+(
+MPU_SDA 
+U2-24 MPU-6050-SDA Passive 
+R1-1 FRC0402F4701TS-1 Passive 
+J6-2 FLY_2P-P2 Passive 
+)
+(
+HEAT- 
+Q1-3 AO3400A_C20917-D Passive 
+J1-2 FLY_3P-P2 Passive 
+)
+(
+MOS_G 
+Q1-1 AO3400A_C20917-G Passive 
+R6-1 FRC0402F1000TS-1 Passive 
+R7-2 FRC0402F1003TS-2 Passive 
+)
+(
+HEAT_CTRL 
+R6-2 FRC0402F1000TS-2 Passive 
+J1-3 FLY_3P-P3 Passive 
+)
+(
+BAT+ 
+C5-2 CGA0603X5R106K100JT-2 Passive 
+C6-2 CGA0603X5R106K100JT-2 Passive 
+J1-1 FLY_3P-P1 Passive 
+J5-1 FLY_4P-P1 Passive 
+J5-2 FLY_4P-P2 Passive 
+)
+(
+FSR- 
+R9-2 0402WGF2200TCE-2 Input   
+R10-2 FRC0402F4701TS-2 Passive 
+J4-2 FLY_3P-P2 Passive 
+)
+(
+ADC_PIN 
+R9-1 0402WGF2200TCE-1 Input   
+C7-2 FCC0603B103K500CT-2 Passive 
+J4-3 FLY_3P-P3 Passive 
+)

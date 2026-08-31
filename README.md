@@ -1,9 +1,22 @@
 # HOLD 工程仓库
 
 ## 项目简介
-本仓库用于承载 HOLD 项目的嵌入式固件实验、整机联调、小程序前端壳子与阶段性开发记录。
+本仓库用于承载 HOLD 智能挂坠的 PCB 硬件工程、嵌入式固件、整机联调、小程序与阶段性开发记录。
+
+## PCB 工程已上传
+HOLD 主板的嘉立创 EDA 专业版工程已归档到 [hardware/pcb/easyeda/Hold.eprj2](hardware/pcb/easyeda/Hold.eprj2)，可直接用于继续维护原理图和 PCB。
+
+配套硬件资料位于 [hardware/pcb/](hardware/pcb/)：
+
+- `easyeda/`：可编辑的嘉立创 EDA 专业版工程。
+- `gerber/current/`：当前 Gerber 生产文件，下单前仍需完成 DRC、Gerber 预览和网络复核。
+- `gerber/archive/`：历史下单文件，仅用于问题追溯，其中带 `DO_NOT_FABRICATE` 的文件禁止再次生产。
+- `netlist/`：阶段性原理图网表。
+
+本次归档重点补齐了 HOLD PCB 的可编辑源工程，后续硬件修改应以源工程为入口重新导出生产文件，不要直接修改或复用历史 Gerber。
 
 当前重点包括：
+- HOLD 主板与 PPG 子板的原理图、PCB 和生产资料维护
 - XIAO ESP32S3 多传感器固件验证
 - MAX30102、MPU6050/MPU6500、压力模块、DRV2605L 的独立探针与整机冒烟测试
 - 呼吸/心率相关原始数据采集与日志导出
@@ -18,6 +31,7 @@
 - 开发日志与阶段记录：`log/`
 - 小程序与云函数：`web/`
 - 串口采集与辅助脚本：`tools/`
+- PCB 源工程与生产资料：`hardware/pcb/`
 
 ## 当前实现范围
 - 独立环境：MPU6050/MPU6500 探针、单 IMU 呼吸实验、MAX30102 指尖/胸口环境、DRV2605L LRA 环境、BLE 按键链路环境
@@ -26,12 +40,12 @@
 
 ## MR60BHA2 当前建议
 - XIAO ESP32C6 + MR60BHA2 的首轮验证暂时改走 Arduino IDE 独立草图路径，避免继续受 PlatformIO 的 ESP32-C6 Arduino 环境问题阻塞。
-- 可直接使用 [arduino/README.md](c:\Users\LBG\Desktop\hold\arduino\README.md) 中的验证步骤与草图。
+- 可直接使用 [arduino/README.md](arduino/README.md) 中的验证步骤与草图。
 
 ## 推荐使用方式
-1. 在 HOLD 根目录执行 pio run 进行编译。
-2. 连接开发板后执行 pio run -t upload 进行烧录。
-3. 执行 pio device monitor -b 115200 查看串口日志。
+1. 在 HOLD 根目录执行 `pio run` 进行编译。
+2. 连接开发板后执行 `pio run -t upload` 进行烧录。
+3. 执行 `pio device monitor -b 115200` 查看串口日志。
 
 ## 串口日志预期
 - 上电或复位后会先输出一组启动信息。

@@ -44,14 +44,15 @@ constexpr uint8_t kMpuRegisterAccelXoutH = 0x3B;
 constexpr float kAccelScaleLsbPerG = 16384.0f;
 constexpr float kGyroScaleLsbPerDps = 131.0f;
 
-constexpr unsigned long kHapticToggleIntervalMs = 700;
-constexpr uint8_t kHapticActiveRtp = 0x48;
+constexpr unsigned long kHapticToggleIntervalMs = 1200;
+constexpr uint8_t kHapticActiveRtp = 0x7F;
 
 constexpr uint8_t kHeaterControlPin = 2;   // D1/A1
 constexpr uint8_t kHeaterPwmChannel = 2;
 constexpr uint32_t kHeaterPwmFrequencyHz = 5000;
 constexpr uint8_t kHeaterPwmResolutionBits = 8;
 constexpr uint32_t kHeaterPwmDuty80Percent = 204;
+constexpr bool kEnableHeaterOutput = false;
 constexpr unsigned long kHeaterEnableDelayMs = 5000;
 
 constexpr uint8_t kRgbRedPin = 7;    // D8
@@ -339,6 +340,11 @@ void setupHeaterPwm() {
 }
 
 void updateHeaterOutput(unsigned long nowMs) {
+  if (!kEnableHeaterOutput) {
+    ledcWrite(kHeaterPwmChannel, 0);
+    return;
+  }
+
   if (heaterEnabled || nowMs < kHeaterEnableDelayMs) {
     return;
   }
@@ -514,7 +520,7 @@ void printStatus(unsigned long nowMs) {
       static_cast<unsigned>(lastPressureSample.level),
       hapticReady ? (hapticOutputEnabled ? "ON" : "OFF") : "MISS",
       static_cast<unsigned>(currentHapticRtp),
-      heaterEnabled ? "PWM80" : "WAIT",
+      kEnableHeaterOutput ? (heaterEnabled ? "PWM80" : "WAIT") : "FORCED_OFF",
       static_cast<unsigned>(kHeaterControlPin),
       currentLedLabel());
 }
@@ -576,7 +582,7 @@ void setup() {
   pulseBoardLed(8);
 
   Serial.printf(
-      "[smoke] init | i2c 57=%c 68=%c 69=%c 5A=%c | imu=%s | ppg=%s | pressure=%s | motor=%s | heater=wait->80%% gpio=%u | led_runner=D8/D9/D10\n",
+      "[smoke] init | i2c 57=%c 68=%c 69=%c 5A=%c | imu=%s | ppg=%s | pressure=%s | motor=%s | heater=forced-off gpio=%u | led_runner=D8/D9/D10\n",
       visibleFlag(max30102Seen),
       visibleFlag(mpuAddressLowSeen),
       visibleFlag(mpuAddressHighSeen),
