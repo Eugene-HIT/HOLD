@@ -1,82 +1,81 @@
-<view class="daily-page" wx:if="{{activeDay}}">
-  <view class="daily-hero">
-    <view class="hero-title">当日呼吸与心跳分析</view>
-    <view class="hero-subtitle">以天为单位查看当前已缓存的真实日级摘要数据。</view>
+<view class="daily-page">
+  <view class="page-topbar">
+    <view class="app-title">每日分析</view>
+    <view class="app-muted">按天查看已归档的呼吸与心率摘要。</view>
   </view>
 
-  <scroll-view class="day-tabs" scroll-x="true" enable-flex="true">
-    <block wx:for="{{dailyAnalyses}}" wx:key="day">
-      <view class="day-tab {{index === activeIndex ? 'active' : ''}}" bindtap="switchDay" data-index="{{index}}">
-        <view class="day-tab-date">{{item.day}}</view>
-        <view class="day-tab-label">{{item.title}}</view>
-      </view>
-    </block>
-  </scroll-view>
-
-  <view class="stats-grid">
-    <view class="stat-card breath">
-      <view class="stat-value">{{activeDay.respirationAvg}}</view>
-      <view class="stat-unit">次/分</view>
-      <view class="stat-label">平均呼吸率</view>
-    </view>
-    <view class="stat-card heart">
-      <view class="stat-value">{{activeDay.heartRateAvg}}</view>
-      <view class="stat-unit">bpm</view>
-      <view class="stat-label">平均心率</view>
-    </view>
-    <view class="stat-card stable">
-      <view class="stat-value">{{activeDay.windowCount || '--'}}</view>
-      <view class="stat-unit">个</view>
-      <view class="stat-label">窗口数</view>
-    </view>
-  </view>
-
-  <view class="chart-panel">
-    <view class="panel-title">当日观察</view>
-    <view class="insight-copy">{{activeDay.insight}}</view>
-    <view class="insight-copy">{{activeDay.summary}}</view>
-    <view class="insight-copy">{{activeDay.suggestion}}</view>
-  </view>
-
-  <view class="chart-panel">
-    <view class="panel-title">呼吸曲线与检测跳点</view>
-    <view class="chart-meta">最近 1 分钟缓存 · 呼吸 bpm {{activeDay.respirationAvg || '--'}}</view>
-    <canvas canvas-id="respWaveCanvas" class="wave-canvas" style="width: {{chartWidth}}px; height: {{chartHeight}}px;" width="{{chartWidth}}" height="{{chartHeight}}"></canvas>
-  </view>
-
-  <view class="chart-panel">
-    <view class="panel-title">胸口 PPG 曲线与跳点</view>
-    <view class="chart-meta">最近 1 分钟缓存 · 心率 {{activeDay.heartRateAvg || '--'}} bpm</view>
-    <canvas canvas-id="chestPpgCanvas" class="wave-canvas" style="width: {{chartWidth}}px; height: {{chartHeight}}px;" width="{{chartWidth}}" height="{{chartHeight}}"></canvas>
-  </view>
-
-  <view class="chart-panel">
-    <view class="panel-title">生成报告</view>
-    <view class="insight-copy">把当前页面已缓存的呼吸曲线、胸口 PPG 曲线、统计数据与时段记录发送给模型，生成简要分析。</view>
-    <button class="report-button" bindtap="generateReport" loading="{{reportStatus === 'running'}}">生成报告</button>
-    <view class="chart-meta" wx:if="{{reportUpdatedAt}}">最近生成 {{reportUpdatedAt}}</view>
-    <view class="chart-meta" wx:if="{{reportSource}}">来源 {{reportSource}}</view>
-    <view class="report-error" wx:if="{{reportError}}">错误 {{reportError}}</view>
-    <view class="insight-copy" wx:if="{{reportText}}">{{reportText}}</view>
-  </view>
-
-  <view class="chart-panel" wx:if="{{activeDay.timeline && activeDay.timeline.length}}">
-    <view class="panel-title">时段记录</view>
-    <view class="timeline-list">
-      <block wx:for="{{activeDay.timeline}}" wx:key="time">
-        <view class="timeline-row">
-          <view class="timeline-time">{{item.time}}</view>
-          <view class="timeline-dot {{item.level}}"></view>
-          <view class="timeline-text">{{item.label}} · {{item.value}}</view>
+  <block wx:if="{{activeDay}}">
+    <scroll-view class="day-tabs" scroll-x="true" enable-flex="true">
+      <block wx:for="{{dailyAnalyses}}" wx:for-item="day" wx:key="day">
+        <view class="day-tab {{index === activeIndex ? 'active' : ''}}" bindtap="switchDay" data-index="{{index}}">
+          <view class="day-tab-date">{{day.day}}</view>
+          <view class="day-tab-label">{{day.title}}</view>
         </view>
       </block>
-    </view>
-  </view>
-</view>
+    </scroll-view>
 
-<view class="daily-page" wx:else>
-  <view class="daily-hero">
-    <view class="hero-title">当日呼吸与心跳分析</view>
-    <view class="hero-subtitle">暂无真实日级摘要数据。</view>
+    <view class="app-card">
+      <view class="stats-grid">
+        <view class="stat-item">
+          <view class="stat-value">{{activeDay.respirationAvg || '--'}}</view>
+          <view class="app-metric-label">平均呼吸（次/分）</view>
+        </view>
+        <view class="stat-item">
+          <view class="stat-value">{{activeDay.heartRateAvg || '--'}}</view>
+          <view class="app-metric-label">平均心率（bpm）</view>
+        </view>
+        <view class="stat-item">
+          <view class="stat-value">{{activeDay.windowCount || '--'}}</view>
+          <view class="app-metric-label">监测窗口（个）</view>
+        </view>
+      </view>
+    </view>
+
+    <view class="app-card">
+      <view class="app-section-title section-gap">当日观察</view>
+      <view class="app-body" wx:if="{{activeDay.insight}}">{{activeDay.insight}}</view>
+      <view class="app-body second-line" wx:if="{{activeDay.summary}}">{{activeDay.summary}}</view>
+      <view class="app-body second-line" wx:if="{{activeDay.suggestion}}">{{activeDay.suggestion}}</view>
+    </view>
+
+    <view class="app-card">
+      <view class="app-section-title section-gap">呼吸曲线</view>
+      <view class="app-muted chart-caption">平均呼吸 {{activeDay.respirationAvg || '--'}} 次/分</view>
+      <canvas canvas-id="respWaveCanvas" class="wave-canvas" style="width: {{chartWidth}}px; height: {{chartHeight}}px;" width="{{chartWidth}}" height="{{chartHeight}}"></canvas>
+    </view>
+
+    <view class="app-card">
+      <view class="app-section-title section-gap">胸口 PPG 曲线</view>
+      <view class="app-muted chart-caption">平均心率 {{activeDay.heartRateAvg || '--'}} bpm</view>
+      <canvas canvas-id="chestPpgCanvas" class="wave-canvas" style="width: {{chartWidth}}px; height: {{chartHeight}}px;" width="{{chartWidth}}" height="{{chartHeight}}"></canvas>
+    </view>
+
+    <view class="app-card" wx:if="{{activeDay.timeline && activeDay.timeline.length}}">
+      <view class="app-section-title section-gap">时段记录</view>
+      <view class="timeline-list">
+        <block wx:for="{{activeDay.timeline}}" wx:for-item="slot" wx:key="time">
+          <view class="timeline-row">
+            <view class="timeline-time">{{slot.time}}</view>
+            <view class="timeline-dot {{slot.level}}"></view>
+            <view class="timeline-text">{{slot.label}} · {{slot.value}}</view>
+          </view>
+        </block>
+      </view>
+    </view>
+
+    <view class="app-card">
+      <view class="app-section-title section-gap">智能分析</view>
+      <view class="app-body">把当天的呼吸曲线、PPG 曲线与统计数据发送给模型，生成当天简要分析。</view>
+      <button class="app-button app-button--primary report-button" bindtap="generateReport" loading="{{reportStatus === 'running'}}">
+        {{reportStatus === 'running' ? '生成中' : '生成当日分析'}}
+      </button>
+      <view class="app-muted" wx:if="{{reportUpdatedAt}}">生成于 {{reportUpdatedAt}}</view>
+      <view class="report-error" wx:if="{{reportError}}">生成失败：{{reportError}}</view>
+      <view class="app-body report-text" wx:if="{{reportText}}">{{reportText}}</view>
+    </view>
+  </block>
+
+  <view class="app-card" wx:else>
+    <view class="app-empty">暂无按日归档的监测数据。设备上报后会自动按天整理。</view>
   </view>
 </view>

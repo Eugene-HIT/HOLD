@@ -1,39 +1,58 @@
 <view class="overall-page">
-  <view class="overall-hero">
-    <view class="hero-tag">SUMMARY</view>
-    <view class="hero-title">整体分析页</view>
-    <view class="hero-subtitle">把呼吸报告、当天心率报告、指部 PPG 报告与总结板块收敛到同一页，便于连续查看。</view>
+  <view class="page-topbar">
+    <view class="app-title">整体分析</view>
   </view>
 
-  <view class="overall-panel">
-    <view class="panel-head">
-      <view>
-        <view class="panel-title">{{overallSummary.title || '整体分析'}}</view>
-        <view class="panel-meta">{{overallSummary.updatedAt ? '最近更新 ' + overallSummary.updatedAt : '尚未生成分析'}}</view>
+  <view class="group-label">今日</view>
+
+  <view class="app-card">
+    <view class="app-card-head">
+      <view class="app-section-title">今日概览</view>
+      <text class="app-card-head__link" bindtap="openDailyAnalysis">每日分析详情</text>
+    </view>
+
+    <view class="overview-grid" wx:if="{{hasToday}}">
+      <view class="overview-item">
+        <view class="overview-value">{{todayResp}}</view>
+        <view class="app-metric-label">平均呼吸（次/分）</view>
       </view>
-      <view class="panel-actions">
-        <button class="refresh-button" bindtap="refreshInsight" loading="{{insightStatus === 'running'}}">刷新分析</button>
-        <button class="ghost-button" bindtap="generateDetailedReport" loading="{{detailedReportStatus === 'running'}}">生成详尽报告</button>
+      <view class="overview-item">
+        <view class="overview-value">{{todayHeart}}</view>
+        <view class="app-metric-label">平均心率（bpm）</view>
+      </view>
+      <view class="overview-item">
+        <view class="overview-value">{{todayWindows}}</view>
+        <view class="app-metric-label">监测窗口（个）</view>
       </view>
     </view>
-    <view class="section-text">{{overallSummary.summary || '暂无整体摘要。'}}</view>
-    <view class="section-text">{{overallSummary.advice || '暂无建议。'}}</view>
+    <view class="app-body" wx:if="{{hasToday && todaySummary}}">{{todaySummary}}</view>
+    <view class="app-empty" wx:if="{{!hasToday}}">今天还没有监测数据，连接设备后会自动记录。</view>
   </view>
 
-  <view class="overall-panel">
-    <view class="panel-title">详尽综合报告</view>
-    <view class="panel-meta">{{detailedReportUpdatedAt ? '最近生成 ' + detailedReportUpdatedAt : '尚未生成详尽报告'}}</view>
-    <view class="panel-meta" wx:if="{{detailedReportSource}}">来源 {{detailedReportSource}}</view>
-    <view class="report-error" wx:if="{{detailedReportError}}">错误 {{detailedReportError}}</view>
-    <view class="section-text">{{detailedReport || '点击“生成详尽报告”后，会基于最近真实缓存的呼吸、当天心率与主动检测数据生成更完整的文字分析。'}}</view>
-  </view>
+  <view class="group-label">整体趋势</view>
 
-  <block wx:if="{{overallSummary && overallSummary.sections && overallSummary.sections.length}}">
-    <block wx:for="{{overallSummary.sections}}" wx:key="key">
-      <view class="overall-panel">
-        <view class="panel-title">{{item.title}}</view>
-        <view class="section-text">{{item.body}}</view>
+  <view class="app-card trend-card">
+    <view class="app-eyebrow">当前状态</view>
+    <view class="status-text">{{overallSummary.summary || '暂无整体摘要，连接设备并记录一段时间数据后自动生成。'}}</view>
+
+    <view class="advice-block" wx:if="{{overallSummary.advice}}">
+      <view class="advice-label">建议</view>
+      <view class="advice-body">{{overallSummary.advice}}</view>
+    </view>
+
+    <view class="trend-section" wx:for="{{sections}}" wx:for-item="section" wx:key="key">
+      <view class="section-head">
+        <view class="section-dot {{section.key}}"></view>
+        <view class="app-section-title">{{section.title}}</view>
       </view>
-    </block>
-  </block>
+      <view class="app-body">{{section.body}}</view>
+    </view>
+
+    <view class="trend-foot">
+      <button class="app-button app-button--outline refresh-button" bindtap="refreshInsight" loading="{{insightStatus === 'running'}}">
+        {{insightStatus === 'running' ? '正在更新' : '刷新分析'}}
+      </button>
+      <view class="app-muted trend-updated">{{overallSummary.updatedAt ? '更新于 ' + overallSummary.updatedAt : '尚未生成分析'}}</view>
+    </view>
+  </view>
 </view>

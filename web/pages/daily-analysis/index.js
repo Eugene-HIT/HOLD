@@ -41,7 +41,9 @@ Page({
     };
   },
 
-  onLoad() {
+  onLoad(options) {
+    this.initialDayKey = options && options.day ? decodeURIComponent(`${options.day}`) : '';
+
     const systemInfo = wx.getSystemInfoSync();
     this.setData({
       chartWidth: Math.max(280, Math.floor(systemInfo.windowWidth - 56)),
@@ -83,7 +85,14 @@ Page({
       const state = this.pendingRuntimeState;
       const dailyAnalyses = state.dailyAnalyses || [];
       this.currentDailyAnalyses = dailyAnalyses;
-      const activeIndex = Math.min(this.data.activeIndex || 0, Math.max(0, dailyAnalyses.length - 1));
+      let activeIndex = Math.min(this.data.activeIndex || 0, Math.max(0, dailyAnalyses.length - 1));
+      if (this.initialDayKey) {
+        const targetIndex = dailyAnalyses.findIndex((item) => `${item.dayKey || item.day || ''}` === this.initialDayKey);
+        if (targetIndex >= 0) {
+          activeIndex = targetIndex;
+        }
+        this.initialDayKey = '';
+      }
       const fallbackDay = holdBleRuntime.buildFallbackDailyAnalysis();
       const activeDay = dailyAnalyses[activeIndex] || fallbackDay;
       this.activeDayPayload = activeDay || null;

@@ -1,194 +1,122 @@
 <view class="home-page">
-  <view class="home-hero">
-    <view class="hero-row">
-      <view>
-        <view class="hero-badge">HOLD</view>
-        <view class="hero-title">用户主页</view>
-        <view class="hero-subtitle">连接、校准和关键引导信息都收敛在首页显眼位置，调试页只做诊断查看。</view>
-      </view>
-      <view class="debug-entry" bindtap="openDebugPage">调试页</view>
+  <view class="home-topbar">
+    <view>
+      <view class="brand">HOLD</view>
+      <view class="app-muted brand-sub">呼吸与心率监测</view>
     </view>
-
-    <view class="hero-actions">
-      <button class="hero-primary" bindtap="handleScanAndConnect">扫描并连接</button>
-      <button class="hero-secondary" bindtap="disconnectDevice">断开连接</button>
-      <button class="hero-ghost" bindtap="clearAllCachedData">删除所有数据缓存</button>
-      <button class="hero-guide" bindtap="startBreathGuide">开启呼吸引导</button>
-    </view>
-
-    <view class="hero-metrics">
-      <view class="hero-chip">
-        <text class="chip-label">设备</text>
-        <text class="chip-value">{{deviceName || '未连接'}}</text>
-      </view>
-      <view class="hero-chip">
-        <text class="chip-label">适配器</text>
-        <text class="chip-value">{{adapterStatus}}</text>
-      </view>
-      <view class="hero-chip">
-        <text class="chip-label">连接</text>
-        <text class="chip-value">{{connectionStatus}}</text>
-      </view>
-    </view>
-
+    <view class="debug-entry" bindtap="openDebugPage">调试</view>
   </view>
 
-  <view class="module-card calibration-card">
-    <view class="module-tag warning">校准与引导</view>
-    <view class="calibration-state">{{currentDeviceState || '未收到设备状态'}}</view>
-    <view class="calibration-guide">{{currentGuideText || '连接设备后，这里会显示大字校准提示。'}}</view>
-    <view class="calibration-phase" wx:if="{{currentPhaseText}}">{{currentPhaseText}}</view>
-    <view class="calibration-meta">
-      <view class="meta-pill" wx:if="{{currentCalibrationStep}}">步骤 {{currentCalibrationStep}}</view>
-      <view class="meta-pill" wx:if="{{phaseRemainingMs}}">剩余 {{phaseRemainingMs}} ms</view>
-      <view class="meta-pill" wx:if="{{currentAxisName && currentDeviceState === 'RESP_CALIBRATING'}}">轴 {{currentAxisName}}</view>
+  <view class="app-card device-card">
+    <view class="device-row">
+      <view class="app-dot {{isConnected ? 'app-dot--live' : (connecting ? 'app-dot--busy' : 'app-dot--off')}}"></view>
+      <view class="device-text">
+        <view class="device-name">{{connectionText}}</view>
+        <view class="app-muted">{{connectionHint}}</view>
+      </view>
+      <button class="connect-btn" wx:if="{{!isConnected}}" bindtap="connectDevice" loading="{{connecting}}">{{connecting ? '搜索中' : '连接'}}</button>
     </view>
   </view>
 
-  <view class="module-card metrics-card">
-    <view class="module-header">
-      <view>
-        <view class="module-tag">实时指标</view>
-        <view class="module-title">当前设备上报</view>
-      </view>
-      <view class="module-action" bindtap="openDebugPage">看调试曲线</view>
+
+
+  <view class="app-card">
+    <view class="app-card-head">
+      <view class="app-section-title">实时</view>
+      <text class="app-muted" wx:if="{{liveUpdatedAt}}">{{liveUpdatedAt}}</text>
     </view>
 
-    <view class="analysis-grid">
-      <view class="analysis-stat breathing">
-        <text class="analysis-number">{{currentRespBpm || '--'}}</text>
-        <text class="analysis-unit">次/分</text>
-        <text class="analysis-label">呼吸 bpm</text>
+    <view class="live-grid">
+      <view class="live-item">
+        <view class="live-value">{{respBpm}}<text class="live-unit">次/分</text></view>
+        <view class="app-metric-label">呼吸</view>
       </view>
-      <view class="analysis-stat heartbeat">
-        <text class="analysis-number">{{currentHeartBpm || '--'}}</text>
-        <text class="analysis-unit">bpm</text>
-        <text class="analysis-label">心率 bpm</text>
-      </view>
-      <view class="analysis-stat stability">
-        <text class="analysis-number">{{currentBeatCount || '--'}}</text>
-        <text class="analysis-unit">次</text>
-        <text class="analysis-label">当前 beat 数</text>
+      <view class="live-divider"></view>
+      <view class="live-item">
+        <view class="live-value">{{heartBpm}}<text class="live-unit">bpm</text></view>
+        <view class="app-metric-label">心率</view>
       </view>
     </view>
 
-    <view class="summary-strip compact">
-      <view class="summary-pill">
-        <text class="summary-value">{{currentMotionLevel || '--'}}</text>
-        <text class="summary-label">motion</text>
+    <view class="wave-wrap">
+      <view class="wave-block">
+        <view class="wave-label">
+          <view class="wave-dot wave-dot--resp"></view>
+          <text class="app-muted">呼吸波形</text>
+        </view>
+        <canvas canvas-id="homeRespCanvas" class="home-wave" style="width: {{chartWidth}}px; height: {{chartHeight}}px;" width="{{chartWidth}}" height="{{chartHeight}}"></canvas>
       </view>
-      <view class="summary-pill">
-        <text class="summary-value">{{currentBeatCount || '--'}}</text>
-        <text class="summary-label">beat count</text>
-      </view>
-      <view class="summary-pill">
-        <text class="summary-value">{{debugLogCount || '--'}}</text>
-        <text class="summary-label">调试日志条数</text>
+      <view class="wave-block">
+        <view class="wave-label">
+          <view class="wave-dot wave-dot--heart"></view>
+          <text class="app-muted">心率波形 · 胸口 PPG</text>
+        </view>
+        <canvas canvas-id="homeHeartCanvas" class="home-wave" style="width: {{chartWidth}}px; height: {{chartHeight}}px;" width="{{chartWidth}}" height="{{chartHeight}}"></canvas>
       </view>
     </view>
   </view>
 
-  <view class="module-card">
-    <view class="module-header">
-      <view>
-        <view class="module-tag">最近摘要</view>
-        <view class="module-title">真实缓存摘要</view>
-      </view>
-    </view>
-    <view class="module-copy" wx:if="{{latestPassiveWindowText}}">{{latestPassiveWindowText}}</view>
-    <view class="module-copy" wx:if="{{latestActiveWindowText}}">{{latestActiveWindowText}}</view>
-    <view class="empty-copy" wx:if="{{!latestPassiveWindowText && !latestActiveWindowText}}">暂无真实缓存摘要，收到窗口后会在这里长期保留。</view>
+  <view class="app-card guide-card" wx:if="{{hasGuide}}">
+    <view class="app-eyebrow">请跟随提示</view>
+    <view class="guide-text">{{guideText}}</view>
+    <view class="app-muted" wx:if="{{guideMeta}}">{{guideMeta}}</view>
   </view>
 
-  <view class="module-card highlight-card">
-    <view class="module-header">
-      <view>
-        <view class="module-tag">主动检测</view>
-        <view class="module-title">指部 PPG 报告</view>
-      </view>
-      <view class="module-action" bindtap="openLatestReport">查看详情</view>
-    </view>
-
-    <view class="summary-strip compact" wx:if="{{activeMeasurements.length}}">
-      <view class="summary-pill">
-        <text class="summary-value">{{activeMeasurements[0].resultTag}}</text>
-        <text class="summary-label">结果状态</text>
-      </view>
-      <view class="summary-pill">
-        <text class="summary-value">{{activeMeasurements[0].durationLabel}}</text>
-        <text class="summary-label">检测时长</text>
-      </view>
-      <view class="summary-pill">
-        <text class="summary-value">{{activeMeasurements[0].metrics[0].value}}</text>
-        <text class="summary-label">平均心率</text>
-      </view>
-    </view>
-
-    <view class="module-copy" wx:if="{{activeMeasurements.length}}">{{activeMeasurements[0].summary}}</view>
-    <view class="module-copy" wx:if="{{activeMeasurements.length}}">{{activeMeasurements[0].briefAnalysis}}</view>
-    <view class="module-copy" wx:if="{{activeMeasurements.length}}">{{activeMeasurements[0].briefAdvice}}</view>
-    <view class="module-copy subtle-copy" wx:if="{{activeMeasurements.length}}">点击右上角“查看详情”后，会进入指部 PPG 波形与报告详情页。这里保留最近一次 1 分钟检测的预览。</view>
-
-    <view class="chart-panel-lite" wx:if="{{activeMeasurements.length}}" bindtap="openLatestReportCard">
-      <view class="mini-chart-title">最近一次指部 PPG 曲线与跳点</view>
-      <canvas canvas-id="homeActivePpgCanvas" class="mini-wave-canvas" style="width: {{chartWidth}}px; height: {{chartHeight}}px;" width="{{chartWidth}}" height="{{chartHeight}}"></canvas>
-    </view>
-
-    <view class="module-copy subtle-copy" wx:if="{{activeMeasurements.length && activeMeasurements[0].generatedReportUpdatedAt}}">最近报告 {{activeMeasurements[0].generatedReportUpdatedAt}} · {{activeMeasurements[0].generatedReportSource || 'unknown'}}</view>
-    <view class="module-copy subtle-copy" wx:if="{{activeMeasurements.length && activeMeasurements[0].generatedReportText}}">{{activeMeasurements[0].generatedReportText}}</view>
-    <view class="module-copy subtle-copy" wx:if="{{activeMeasurements.length && activeMeasurements[0].generatedReportError}}">错误 {{activeMeasurements[0].generatedReportError}}</view>
-    <view class="empty-copy" wx:if="{{!activeMeasurements.length}}">暂无指部主动检测记录。完成一次 60 秒主动检测后，这里会保留报告摘要。</view>
+  <view class="app-card action-card">
+    <view class="app-section-title">呼吸引导</view>
+    <view class="app-body">跟随设备提示完成一次呼吸训练，全程约 1 分钟。过程中请保持身体放松、匀速呼吸。</view>
+    <button class="app-button app-button--primary action-button" bindtap="startBreathGuide" loading="{{breathGuideRunning}}">
+      {{breathGuideRunning ? '引导进行中' : '开始呼吸引导'}}
+    </button>
+    <view class="app-muted action-hint" wx:if="{{!isConnected}}">需先连接设备后开始。</view>
   </view>
 
-  <view class="module-card">
-    <view class="module-header">
-      <view>
-        <view class="module-tag">被动监测</view>
-        <view class="module-title">呼吸报告与当天心率报告</view>
-      </view>
-      <view class="module-action" bindtap="openDailyAnalysis">查看详情</view>
+  <view class="app-card">
+    <view class="app-card-head">
+      <view class="app-section-title">指部 PPG 主动检测</view>
+      <text class="app-card-head__link" wx:if="{{!activeTestRunning && hasLatestReport}}" bindtap="openLatestReport">查看报告</text>
     </view>
 
-    <view class="analysis-grid" wx:if="{{dailyAnalyses.length}}">
-      <view class="analysis-stat breathing">
-        <text class="analysis-number">{{dailyAnalyses[0].respirationAvg}}</text>
-        <text class="analysis-unit">次/分</text>
-        <text class="analysis-label">平均呼吸率</text>
+    <block wx:if="{{activeTestRunning}}">
+      <view class="progress-row">
+        <view class="progress-track">
+          <view class="progress-fill" style="width: {{activeTestPercent}}%"></view>
+        </view>
+        <view class="app-muted progress-text">{{activeTestElapsed}} / {{activeTestTarget}} 秒</view>
       </view>
-      <view class="analysis-stat heartbeat">
-        <text class="analysis-number">{{dailyAnalyses[0].heartRateAvg || '--'}}</text>
-        <text class="analysis-unit">bpm</text>
-        <text class="analysis-label">平均心率</text>
+
+      <view class="active-live">
+        <view class="active-live-item">
+          <view class="active-live-value">{{activeTestHeart}}<text class="live-unit">bpm</text></view>
+          <view class="app-metric-label">实时心率</view>
+        </view>
+        <view class="active-live-item">
+          <view class="active-live-value">{{activeTestBeats}}</view>
+          <view class="app-metric-label">已检出 beat</view>
+        </view>
       </view>
-      <view class="analysis-stat stability">
-        <text class="analysis-number">{{dailyAnalyses[0].windowCount || '--'}}</text>
-        <text class="analysis-unit">个</text>
-        <text class="analysis-label">窗口数</text>
-      </view>
-    </view>
 
-    <view class="module-copy" wx:if="{{dailyAnalyses.length}}">{{dailyAnalyses[0].summary}}</view>
-    <view class="module-copy" wx:if="{{dailyAnalyses.length}}">{{dailyAnalyses[0].insight}}</view>
-    <view class="module-copy" wx:if="{{dailyAnalyses.length}}">{{dailyAnalyses[0].suggestion}}</view>
-    <view class="empty-copy" wx:if="{{!dailyAnalyses.length}}">暂无按日归档的呼吸与心率摘要。收到被动窗口后会持续保留近一段时间数据。</view>
-  </view>
+      <view class="app-muted">请保持手指贴合传感器、身体尽量静止，检测结束后会自动生成报告。</view>
+    </block>
 
-  <view class="module-card">
-    <view class="module-header">
-      <view>
-        <view class="module-tag">总结板块</view>
-        <view class="module-title">整体分析与建议</view>
-      </view>
-      <view class="module-action" bindtap="openOverallAnalysis">查看详情</view>
-    </view>
+    <block wx:else>
+      <view class="app-body">60 秒指部 PPG 检测，测量平均心率、搏动节律与心率变异，完成后自动生成报告。</view>
+      <button class="app-button app-button--primary action-button" bindtap="startActiveTest" loading="{{activeTestStarting}}">开始 60 秒检测</button>
+      <view class="app-muted action-hint" wx:if="{{!isConnected}}">需先连接设备后开始。</view>
 
-    <view class="module-copy">{{overallSummary.summary || '暂无整体分析。'}}</view>
-    <view class="module-copy">{{overallSummary.advice || '连接设备并积累数据后，这里会生成建议。'}}</view>
-    <view class="module-copy subtle-copy">{{insightStatus === 'running' ? '正在更新简要分析...' : (overallSummary.updatedAt ? '最近更新 ' + overallSummary.updatedAt : '尚未生成分析')}}</view>
-
-    <view class="double-actions">
-      <button class="solid-button" bindtap="openOverallAnalysis">整体分析页</button>
-      <button class="outline-button" bindtap="refreshOverallInsight">刷新分析</button>
-    </view>
+      <block wx:if="{{hasLatestReport}}">
+        <view class="section-divider"></view>
+        <view class="report-head">
+          <view class="report-tag">{{latestReport.resultTag}}</view>
+          <view class="app-muted">{{latestReport.startedAt}}{{latestReport.durationLabel ? ' · ' + latestReport.durationLabel : ''}}</view>
+        </view>
+        <view class="report-line">
+          <text class="report-key">平均心率</text>
+          <text class="report-val">{{latestReport.heartRate}}</text>
+        </view>
+        <view class="app-body" wx:if="{{latestReport.summary}}">{{latestReport.summary}}</view>
+      </block>
+      <view class="app-empty" wx:else>还没有检测记录。</view>
+    </block>
   </view>
 </view>

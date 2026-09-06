@@ -1,374 +1,295 @@
 .home-page {
   min-height: 100vh;
-  padding: 28rpx;
-  background:
-    radial-gradient(circle at top right, rgba(223, 115, 69, 0.18), transparent 34%),
-    radial-gradient(circle at left 20%, rgba(70, 130, 104, 0.18), transparent 28%),
-    linear-gradient(180deg, #f5efe2 0%, #ebe2cf 100%);
+  padding: 24rpx 28rpx 40rpx;
 }
 
-.home-hero {
-  padding: 34rpx 32rpx;
-  border-radius: 34rpx;
-  background: linear-gradient(135deg, #1f3328 0%, #2d4c3c 52%, #8a5a38 100%);
-  color: #fbf3e6;
-  box-shadow: 0 24rpx 60rpx rgba(34, 43, 31, 0.16);
-}
+/* ---------- 顶部 ---------- */
 
-.hero-row {
+.home-topbar {
   display: flex;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: 20rpx;
+  padding: 12rpx 4rpx 28rpx;
 }
 
-.hero-badge {
-  display: inline-block;
-  padding: 8rpx 18rpx;
-  border-radius: 999rpx;
-  background: rgba(251, 243, 230, 0.16);
-  font-size: 22rpx;
-  font-weight: 700;
-  letter-spacing: 2rpx;
+.brand {
+  font-size: 40rpx;
+  font-weight: 600;
+  letter-spacing: 6rpx;
+  color: #1b2419;
+  line-height: 1.2;
 }
 
-.hero-title {
-  margin-top: 18rpx;
-  font-size: 48rpx;
-  font-weight: 700;
-}
-
-.hero-subtitle {
-  margin-top: 12rpx;
-  max-width: 520rpx;
-  font-size: 24rpx;
-  line-height: 1.7;
-  color: rgba(251, 243, 230, 0.84);
+.brand-sub {
+  font-size: 23rpx;
+  letter-spacing: 1rpx;
 }
 
 .debug-entry {
-  height: fit-content;
-  padding: 14rpx 20rpx;
+  font-size: 23rpx;
+  color: #a8a89c;
+  padding: 8rpx 22rpx;
+  border: 1rpx solid rgba(27, 36, 25, 0.1);
   border-radius: 999rpx;
-  background: rgba(251, 243, 230, 0.14);
-  font-size: 22rpx;
-  flex-shrink: 0;
 }
 
-.hero-metrics,
-.analysis-grid,
-.summary-strip,
-.double-actions,
-.hero-actions {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 18rpx;
+.debug-entry:active {
+  color: #5d6558;
 }
 
-.hero-metrics {
-  margin-top: 28rpx;
+/* ---------- 设备卡 ---------- */
+
+.device-card {
+  padding: 26rpx 28rpx;
 }
 
-.hero-actions {
-  margin-top: 22rpx;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+.device-row {
+  display: flex;
+  align-items: center;
 }
 
-.hero-actions .hero-ghost,
-.hero-actions .hero-guide {
+.device-text {
+  flex: 1;
+  margin-left: 16rpx;
   min-width: 0;
-  white-space: normal;
+}
+
+.device-name {
+  font-size: 30rpx;
+  font-weight: 500;
+  color: #1b2419;
   line-height: 1.4;
 }
 
-.hero-chip {
-  padding: 18rpx 20rpx;
-  border-radius: 22rpx;
-  background: rgba(255, 255, 255, 0.08);
-}
-
-.chip-label {
-  display: block;
-  font-size: 22rpx;
-  color: rgba(251, 243, 230, 0.74);
-}
-
-.chip-value {
-  display: block;
-  margin-top: 10rpx;
+.connect-btn {
+  flex: none;
+  margin: 0;
+  height: 64rpx;
+  line-height: 64rpx;
+  padding: 0 30rpx;
   font-size: 26rpx;
-  font-weight: 700;
+  border-radius: 999rpx;
+  background: #2f5d3a;
+  color: #fffdf7;
 }
 
-.hero-primary,
-.hero-secondary,
-.hero-ghost,
-.hero-guide,
-.solid-button,
-.outline-button {
-  border-radius: 18rpx;
-  font-size: 28rpx;
+.connect-btn.button-hover {
+  background: #26492e;
 }
 
-.hero-primary,
-.solid-button {
-  background: #20372a;
-  color: #f7f1df;
-}
+/* ---------- 实时卡 ---------- */
 
-.hero-secondary,
-.outline-button {
-  background: transparent;
-  color: #20372a;
-  border: 2rpx solid rgba(32, 55, 42, 0.16);
-}
-
-.hero-ghost {
-  background: rgba(255, 252, 246, 0.92);
-  color: #20372a;
-}
-
-.hero-guide {
-  background: linear-gradient(135deg, #6b4da6 0%, #8d63d1 100%);
-  color: #fbf6ff;
-}
-
-.module-card {
-  margin-top: 24rpx;
-  padding: 30rpx;
-  border-radius: 30rpx;
-  background: rgba(255, 251, 244, 0.94);
-  box-shadow: 0 18rpx 48rpx rgba(50, 52, 35, 0.08);
-}
-
-.calibration-card {
-  background: linear-gradient(180deg, rgba(255, 244, 224, 0.98) 0%, rgba(255, 252, 246, 0.98) 100%);
-}
-
-.highlight-card {
-  background: linear-gradient(180deg, rgba(255, 248, 237, 0.98) 0%, rgba(255, 252, 246, 0.98) 100%);
-}
-
-.analysis-card {
-  background: linear-gradient(180deg, rgba(244, 250, 246, 0.98) 0%, rgba(255, 253, 248, 0.98) 100%);
-}
-
-.module-header {
+.live-grid {
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 24rpx;
+  align-items: center;
+  padding: 8rpx 0 24rpx;
 }
 
-.module-tag {
-  display: inline-block;
-  padding: 6rpx 16rpx;
-  border-radius: 999rpx;
-  background: #eef2dc;
-  color: #3d4f37;
-  font-size: 20rpx;
-  font-weight: 700;
+.live-item {
+  flex: 1;
+  text-align: center;
 }
 
-.module-tag.warning {
-  background: #f3d68c;
-  color: #5c3818;
+.live-value {
+  font-size: 64rpx;
+  font-weight: 300;
+  color: #1b2419;
+  line-height: 1.1;
+  letter-spacing: -2rpx;
 }
 
-.module-title {
-  margin-top: 14rpx;
-  font-size: 34rpx;
-  font-weight: 700;
-  color: #20372a;
-}
-
-.module-action {
-  padding: 12rpx 18rpx;
-  border-radius: 999rpx;
-  background: #20372a;
-  color: #f8f2e3;
+.live-unit {
   font-size: 22rpx;
+  color: #9a9a8e;
+  margin-left: 8rpx;
+  letter-spacing: 0;
 }
 
-.calibration-state {
+.live-divider {
+  width: 1rpx;
+  height: 64rpx;
+  background: rgba(27, 36, 25, 0.08);
+}
+
+.wave-wrap {
+  border-top: 1rpx solid rgba(27, 36, 25, 0.06);
+  padding-top: 20rpx;
+}
+
+.wave-block + .wave-block {
   margin-top: 20rpx;
-  font-size: 40rpx;
-  font-weight: 700;
-  color: #7a441f;
+  padding-top: 16rpx;
+  border-top: 1rpx solid rgba(27, 36, 25, 0.05);
 }
 
-.calibration-guide {
-  margin-top: 16rpx;
-  font-size: 48rpx;
-  line-height: 1.35;
-  font-weight: 700;
-  color: #20372a;
-}
-
-.calibration-phase {
-  margin-top: 16rpx;
-  font-size: 30rpx;
-  color: #53614f;
-}
-
-.calibration-meta,
-.calibration-extra-row {
+.wave-label {
   display: flex;
-  flex-wrap: wrap;
-  gap: 14rpx;
-  margin-top: 18rpx;
+  align-items: center;
+  gap: 10rpx;
+  margin-bottom: 10rpx;
 }
 
-.meta-pill,
-.calibration-extra {
-  padding: 12rpx 18rpx;
+.wave-dot {
+  width: 12rpx;
+  height: 12rpx;
+  border-radius: 50%;
+}
+
+.wave-dot--resp {
+  background: #3e7c59;
+}
+
+.wave-dot--heart {
+  background: #b0583a;
+}
+
+.home-wave {
+  width: 100%;
+  height: 110rpx;
+}
+
+/* ---------- 引导卡 ---------- */
+
+.guide-card {
+  background: #efe7d6;
+  border-color: rgba(47, 93, 58, 0.12);
+}
+
+.guide-text {
+  font-size: 40rpx;
+  line-height: 1.5;
+  color: #1b2419;
+  margin: 12rpx 0 8rpx;
+  font-weight: 500;
+}
+
+/* ---------- 行动卡 ---------- */
+
+.action-card .app-section-title {
+  display: block;
+  margin-bottom: 12rpx;
+}
+
+.action-button {
+  margin-top: 28rpx;
+}
+
+.action-hint {
+  display: block;
+  margin-top: 16rpx;
+  text-align: center;
+}
+
+/* ---------- 指部 PPG 主动检测 ---------- */
+
+.progress-row {
+  margin: 4rpx 0 28rpx;
+}
+
+.progress-track {
+  height: 8rpx;
   border-radius: 999rpx;
-  background: rgba(32, 55, 42, 0.08);
-  color: #3a4a39;
-  font-size: 22rpx;
-}
-
-.analysis-stat {
-  padding: 22rpx 18rpx;
-  border-radius: 22rpx;
-}
-
-.analysis-stat.breathing {
-  background: #edf6f0;
-}
-
-.analysis-stat.heartbeat {
-  background: #fff0e7;
-}
-
-.analysis-stat.stability {
-  background: #f3efe5;
-}
-
-.analysis-number {
-  font-size: 42rpx;
-  font-weight: 700;
-  color: #20372a;
-}
-
-.analysis-unit,
-.analysis-label {
-  display: block;
-}
-
-.analysis-unit {
-  margin-top: 4rpx;
-  font-size: 22rpx;
-  color: #6d7368;
-}
-
-.analysis-label {
-  margin-top: 14rpx;
-  font-size: 22rpx;
-  color: #546257;
-}
-
-.summary-strip {
-  margin-top: 24rpx;
-}
-
-.summary-pill {
-  padding: 18rpx;
-  border-radius: 20rpx;
-  background: #f1ead8;
-}
-
-.summary-value {
-  display: block;
-  font-size: 28rpx;
-  font-weight: 700;
-  color: #20372a;
-}
-
-.summary-label {
-  display: block;
-  margin-top: 8rpx;
-  font-size: 22rpx;
-  color: #6d7368;
-}
-
-.data-list {
-  margin-top: 22rpx;
-  border-radius: 22rpx;
-  background: rgba(255, 255, 255, 0.72);
+  background: rgba(27, 36, 25, 0.08);
   overflow: hidden;
 }
 
-.data-row {
+.progress-fill {
+  height: 100%;
+  border-radius: 999rpx;
+  background: #3e7c59;
+  transition: width 0.4s ease;
+}
+
+.progress-text {
+  display: block;
+  margin-top: 12rpx;
+  font-size: 24rpx;
+}
+
+.active-live {
   display: flex;
+  margin-bottom: 24rpx;
+}
+
+.active-live-item {
+  flex: 1;
+  text-align: center;
+}
+
+.active-live-value {
+  font-size: 46rpx;
+  font-weight: 300;
+  color: #1b2419;
+  line-height: 1.2;
+}
+
+.active-live-item .app-metric-label {
+  font-size: 21rpx;
+}
+
+.section-divider {
+  height: 1rpx;
+  background: rgba(27, 36, 25, 0.06);
+  margin: 28rpx 0 24rpx;
+}
+
+/* ---------- 最近检测 ---------- */
+
+.report-head {
+  display: flex;
+  align-items: baseline;
+  gap: 16rpx;
+  margin-bottom: 12rpx;
+}
+
+.report-tag {
+  font-size: 24rpx;
+  color: #2f5d3a;
+  background: rgba(47, 93, 58, 0.09);
+  padding: 4rpx 16rpx;
+  border-radius: 999rpx;
+}
+
+.report-line {
+  display: flex;
+  align-items: baseline;
   justify-content: space-between;
+  padding: 10rpx 0;
+}
+
+.report-key {
+  font-size: 26rpx;
+  color: #7d8578;
+}
+
+.report-val {
+  font-size: 30rpx;
+  color: #1b2419;
+}
+
+/* ---------- 快捷入口 ---------- */
+
+.entry-row {
+  display: flex;
   gap: 20rpx;
-  padding: 18rpx 20rpx;
-  border-bottom: 1rpx solid rgba(32, 55, 42, 0.08);
+  margin-top: 8rpx;
 }
 
-.data-row:last-child {
-  border-bottom: none;
-}
-
-.data-label {
-  color: #667064;
-  font-size: 24rpx;
-}
-
-.data-value {
-  color: #20372a;
-  font-size: 24rpx;
-  text-align: right;
-}
-
-.module-copy,
-.empty-copy {
-  margin-top: 22rpx;
-  font-size: 25rpx;
-  line-height: 1.8;
-  color: #304033;
-}
-
-.subtle-copy {
-  color: #6d7368;
-  font-size: 22rpx;
-}
-
-.empty-copy {
-  color: #6d7368;
-}
-
-.double-actions {
-  margin-top: 24rpx;
-  grid-template-columns: 1fr 1fr;
-}
-
-.chart-panel-lite {
-  margin-top: 22rpx;
-  padding: 20rpx;
+.entry-item {
+  flex: 1;
+  background: #fffdf7;
+  border: 1rpx solid rgba(27, 36, 25, 0.06);
   border-radius: 24rpx;
-  background: #f7f1e4;
+  padding: 28rpx 26rpx;
 }
 
-.mini-chart-title {
-  font-size: 24rpx;
-  font-weight: 700;
-  color: #20372a;
+.entry-item:active {
+  background: #f9f5ea;
 }
 
-.mini-wave-canvas {
-  margin-top: 16rpx;
-  width: 100%;
-  border-radius: 18rpx;
-  background: #f8f3e7;
-}
-
-@media (max-width: 640rpx) {
-  .hero-metrics,
-  .analysis-grid,
-  .summary-strip,
-  .double-actions,
-  .hero-actions {
-    grid-template-columns: 1fr;
-  }
+.entry-title {
+  font-size: 29rpx;
+  font-weight: 500;
+  color: #1b2419;
+  margin-bottom: 6rpx;
 }

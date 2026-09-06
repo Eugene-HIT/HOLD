@@ -1,0 +1,127 @@
+<view class="debug-page">
+  <view class="debug-hero">
+    <view class="hero-row">
+      <view>
+        <view class="app-eyebrow">DEBUG</view>
+        <view class="app-title">设备调试台</view>
+      </view>
+      <view class="hero-back" bindtap="goBackHome">返回首页</view>
+    </view>
+    <view class="app-muted">仅供开发与联调使用。所有蓝牙扫描、连接、原始报文与日志诊断能力都收敛在这里，首页不展示任何调试信息。</view>
+  </view>
+
+  <view class="app-card">
+    <view class="app-card-head">
+      <view class="app-section-title">链路状态</view>
+      <view class="state-dot-row">
+        <view class="app-dot {{isConnected ? 'app-dot--live' : (scanning ? 'app-dot--busy' : 'app-dot--off')}}"></view>
+        <text class="app-muted">{{isConnected ? '在线' : (scanning ? '扫描中' : '离线')}}</text>
+      </view>
+    </view>
+
+    <view class="status-row"><text class="label">适配器</text><text class="value">{{adapterStatus}}</text></view>
+    <view class="status-row"><text class="label">连接</text><text class="value">{{connectionStatus}}</text></view>
+    <view class="status-row"><text class="label">设备</text><text class="value">{{deviceName || '未连接'}}</text></view>
+    <view class="status-row"><text class="label">设备状态</text><text class="value">{{currentDeviceState || '--'}}</text></view>
+    <view class="status-row"><text class="label">最近包类型</text><text class="value">{{lastPacketType || '--'}}</text></view>
+    <view class="status-row"><text class="label">当前引导</text><text class="value">{{currentGuideText || '--'}}</text></view>
+    <view class="status-row"><text class="label">校准轴 / 步骤</text><text class="value">{{currentAxisName || '--'}} / {{currentCalibrationStep || '--'}}</text></view>
+    <view class="status-row"><text class="label">相位</text><text class="value">{{currentPhaseText || '--'}} · 剩余 {{phaseRemainingMs || 0}} ms</text></view>
+  </view>
+
+  <view class="debug-actions">
+    <button class="app-button app-button--primary" bindtap="handleScanAndConnect" loading="{{scanning}}">扫描并连接</button>
+    <button class="app-button app-button--outline" bindtap="disconnectDevice">断开连接</button>
+    <button class="app-button app-button--outline" bindtap="startBreathGuide">下发呼吸引导</button>
+    <button class="app-button app-button--outline" bindtap="startActiveTest">下发主动检测（60s）</button>
+    <button class="app-button app-button--ghost" bindtap="clearDebugPanels">清空调试窗口</button>
+    <button class="app-button app-button--danger" bindtap="clearAllCachedData">删除全部数据缓存</button>
+  </view>
+
+  <view class="app-card">
+    <view class="app-section-title section-gap">实时指标</view>
+    <view class="metric-grid">
+      <view class="metric-card">
+        <text class="metric-value">{{currentRespBpm || '--'}}</text>
+        <text class="metric-label">呼吸 bpm</text>
+      </view>
+      <view class="metric-card">
+        <text class="metric-value">{{currentHeartBpm || '--'}}</text>
+        <text class="metric-label">心率 bpm</text>
+      </view>
+      <view class="metric-card">
+        <text class="metric-value small">{{currentMotionLevel || '--'}}</text>
+        <text class="metric-label">motion</text>
+      </view>
+      <view class="metric-card">
+        <text class="metric-value">{{currentBeatCount}}</text>
+        <text class="metric-label">beat count</text>
+      </view>
+      <view class="metric-card">
+        <text class="metric-value">{{currentSignalQuality}}</text>
+        <text class="metric-label">signal quality</text>
+      </view>
+      <view class="metric-card">
+        <text class="metric-value small">{{currentPhaseText || '--'}}</text>
+        <text class="metric-label">phase / axis</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="app-card">
+    <view class="app-section-title section-gap">呼吸曲线窗口</view>
+    <view class="app-muted chart-caption">{{respWaveSummary || '暂无呼吸波形数据'}}</view>
+    <canvas canvas-id="respWaveCanvas" class="wave-canvas" style="width: {{chartWidth}}px; height: {{chartHeight}}px;" width="{{chartWidth}}" height="{{chartHeight}}"></canvas>
+  </view>
+
+  <view class="app-card">
+    <view class="app-section-title section-gap">心率曲线窗口（I6 / I7）</view>
+    <view class="app-muted chart-caption">{{heartWaveSummary || '暂无心率波形数据'}}</view>
+    <canvas canvas-id="heartWaveCanvas" class="wave-canvas" style="width: {{chartWidth}}px; height: {{chartHeight}}px;" width="{{chartWidth}}" height="{{chartHeight}}"></canvas>
+  </view>
+
+  <view class="app-card">
+    <view class="app-card-head">
+      <view class="app-section-title">调试日志（{{debugLogTotal}}）</view>
+      <view class="head-tools">
+        <text class="tool" bindtap="toggleLogExpanded">{{logExpanded ? '收起' : '展开全部'}}</text>
+        <text class="tool" bindtap="copyDebugLogs">复制</text>
+      </view>
+    </view>
+    <view class="log-list" wx:if="{{debugLogs.length}}">
+      <view class="log-item" wx:for="{{debugLogs}}" wx:key="*this">{{item}}</view>
+    </view>
+    <view class="app-empty" wx:else>暂无调试日志。</view>
+  </view>
+
+  <view class="app-card">
+    <view class="app-card-head">
+      <view class="app-section-title">最近原始消息</view>
+      <text class="tool" bindtap="copyRawMessage">复制</text>
+    </view>
+    <view class="status-row"><text class="label">最近时间</text><text class="value">{{lastEventTime || '--'}}</text></view>
+    <view class="raw-block">{{lastEventRaw || '暂无原始报文'}}</view>
+  </view>
+
+  <view class="app-card">
+    <view class="app-section-title section-gap">运行环境</view>
+    <view class="status-row"><text class="label">基础库</text><text class="value">{{envInfo.sdkVersion}}</text></view>
+    <view class="status-row"><text class="label">系统</text><text class="value">{{envInfo.system}}</text></view>
+    <view class="status-row"><text class="label">机型</text><text class="value">{{envInfo.brand}} / {{envInfo.platform}}</text></view>
+    <view class="status-row"><text class="label">系统蓝牙</text><text class="value">{{envInfo.bluetoothEnabled}}</text></view>
+    <view class="status-row"><text class="label">本地存储</text><text class="value">{{storageUsageText}}</text></view>
+  </view>
+
+  <view class="app-card">
+    <view class="app-section-title section-gap">主动检测归档状态</view>
+    <view class="status-row" wx:for="{{archiveRows}}" wx:for-item="row" wx:key="label">
+      <text class="label">{{row.label}}</text>
+      <text class="value">{{row.value}}</text>
+    </view>
+  </view>
+
+  <view class="app-card debug-tip">
+    <view class="app-section-title section-gap">调试提示</view>
+    <view class="app-body">当前页面只接收真实整机 BLE 调试消息。未连接、未订阅或设备未上报时，各指标与波形窗口保持空白，不会填充任何模拟数据。</view>
+  </view>
+</view>

@@ -419,12 +419,10 @@ Page({
     viewReport: null,
     hasStoredReport: false,
     canGenerateReport: false,
-    pageBuildTag: 'active-report 2026-07-05-10',
     chartWidth: 320,
     chartHeight: 180,
     showWaveChart: true,
     chartStatusText: '开始 60 秒检测后，这里会开始绘图',
-    runtimeDebugInfo: '',
     reportStatus: 'idle',
     reportId: ''
   },
@@ -518,7 +516,6 @@ Page({
         showWaveChart: true,
         chartStatusText,
         reportStatus: viewReport && viewReport.generatedReportSource === 'running' ? 'running' : 'idle',
-        runtimeDebugInfo: `stored=${report ? 1 : 0} preview=${viewReport && viewReport.isPreview ? 1 : 0} canGenerate=${canGenerateReport ? 1 : 0} wave=${fullWavePointCount} marker=${fullBeatMarkerCount} beats=${displayedBeatCount} effective=${effectiveBeatCount} rr=${rrIntervalsCount} source=${reportSource || '-'} error=${reportError || '-'}`,
         reportFeedback: report && report.generatedReportSource === 'running'
           ? '正在把这次检测数据发送给模型...'
           : this.data.reportFeedback
@@ -700,7 +697,6 @@ Page({
       } else {
         this.setData({
           reportFeedback: `补正式记录失败: id=${report.id || '-'} latest=${holdBleRuntime.getState().latestActiveWindow ? 1 : 0}`,
-          runtimeDebugInfo: `stored=0 preview=${report && report.isPreview ? 1 : 0} canGenerate=${report.archiveReady ? 1 : 0} ensure=0 source=- error=-`
         });
       }
     }
@@ -787,7 +783,6 @@ Page({
         reportFeedback: generatedReportError
           ? `报告已返回 fallback，原因 ${generatedReportError}`
           : `报告已更新，来源 ${generatedReportSource}。`,
-        runtimeDebugInfo: `direct=1 beats=${report.fullBeatCount || 0} effective=${effectiveBeatCount} rr=${normalizedRrIntervalsMs.length} source=${generatedReportSource || '-'} error=${generatedReportError || '-'} code=${cloudResult.code || '-'}`
       });
       wx.showToast({
         title: generatedReportError ? '已返回回退报告' : '报告已生成',
@@ -799,7 +794,6 @@ Page({
       this.setData({
         reportStatus: 'idle',
         reportFeedback: `报告生成失败：${errorMessage}`,
-        runtimeDebugInfo: `direct=1 beats=${report.fullBeatCount || 0} effective=${effectiveBeatCount} rr=${normalizedRrIntervalsMs.length} source=client-error error=${errorMessage}`
       });
       wx.showToast({
         title: '生成失败',

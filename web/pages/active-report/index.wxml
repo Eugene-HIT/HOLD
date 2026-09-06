@@ -2,70 +2,61 @@
   <view class="report-hero">
     <view class="report-tag">{{viewReport.resultTag}}</view>
     <view class="report-title">{{viewReport.title}}</view>
-    <view class="report-subtitle">{{viewReport.startedAt}}{{viewReport.durationLabel ? ' · ' + viewReport.durationLabel : ''}}</view>
-    <view class="report-meta">前端构建 {{pageBuildTag}}</view>
+    <view class="app-muted">{{viewReport.startedAt}}{{viewReport.durationLabel ? ' · ' + viewReport.durationLabel : ''}}</view>
   </view>
 
-  <view class="report-panel">
-    <view class="panel-title">指部 PPG 曲线与跳点</view>
-    <view class="chart-meta">最近 1 分钟缓存 · 心率 {{viewReport.metrics && viewReport.metrics[0] ? viewReport.metrics[0].value : '--'}} bpm</view>
-    <view class="chart-meta">{{chartStatusText}}</view>
+  <view class="app-card">
+    <view class="app-section-title section-gap">指部 PPG 曲线</view>
+    <view class="app-muted chart-caption">{{chartStatusText}}</view>
     <canvas canvas-id="chestPpgCanvas" class="wave-canvas" style="width: {{chartWidth}}px; height: {{chartHeight}}px;" width="{{chartWidth}}" height="{{chartHeight}}"></canvas>
   </view>
 
-  <view class="report-panel metrics-panel">
-    <view class="panel-title">关键参数</view>
+  <view class="app-card">
+    <view class="app-section-title section-gap">关键参数</view>
     <view class="metrics-row">
-      <block wx:for="{{viewReport.metrics}}" wx:key="label">
+      <block wx:for="{{viewReport.metrics}}" wx:for-item="metric" wx:key="label">
         <view class="report-metric">
-          <view class="report-metric-value">{{item.value}}{{item.unit}}</view>
-          <view class="report-metric-label">{{item.label}}</view>
+          <view class="report-metric-value">{{metric.value}}{{metric.unit}}</view>
+          <view class="app-metric-label">{{metric.label}}</view>
         </view>
       </block>
     </view>
   </view>
 
-  <view class="report-panel">
-    <view class="panel-title">报告摘要</view>
-    <view class="section-text">{{viewReport.summary}}</view>
+  <view class="app-card">
+    <view class="app-section-title section-gap">报告摘要</view>
+    <view class="app-body">{{viewReport.summary}}</view>
   </view>
 
-  <view class="report-panel">
-    <view class="panel-title">简要分析与建议</view>
-    <view class="section-text">{{viewReport.briefAnalysis}}</view>
-    <view class="section-text">{{viewReport.briefAdvice}}</view>
+  <view class="app-card">
+    <view class="app-section-title section-gap">分析与建议</view>
+    <view class="app-body">{{viewReport.briefAnalysis}}</view>
+    <view class="app-body second-line">{{viewReport.briefAdvice}}</view>
   </view>
 
-  <view class="report-panel">
-    <view class="panel-title">模型分析结果</view>
-    <view class="section-text" wx:if="{{canGenerateReport}}">点击下面按钮后，会把这次已经完整缓存下来的 1 分钟主动检测数据发送给模型，生成这次指部 PPG 报告。</view>
-    <view class="section-text" wx:elif="{{hasStoredReport}}">当前已经有主动检测记录，但这条记录还没满足完整生成条件，因此这里先显示缓存曲线与参数。</view>
-    <view class="section-text" wx:else>当前还没有可生成报告的主动检测记录，因此这里暂时只显示曲线预览，不显示正式模型分析。</view>
-    <button class="report-button" bindtap="generateReport" loading="{{reportStatus === 'running'}}">生成这次报告</button>
-    <view class="report-meta" wx:if="{{reportFeedback}}">{{reportFeedback}}</view>
-    <view class="report-meta" wx:if="{{runtimeDebugInfo}}">调试 {{runtimeDebugInfo}}</view>
-    <view class="report-meta" wx:if="{{!canGenerateReport}}">当前按钮已显示，但只有在这次 60 秒检测完整缓存后，才会真正把这一条检测数据送给模型。</view>
-    <view class="report-meta" wx:if="{{viewReport.generatedReportUpdatedAt}}">最近生成 {{viewReport.generatedReportUpdatedAt}}</view>
-    <view class="report-meta" wx:if="{{viewReport.generatedReportSource}}">来源 {{viewReport.generatedReportSource}}</view>
-    <view class="report-error" wx:if="{{viewReport.generatedReportError}}">错误 {{viewReport.generatedReportError}}</view>
-    <view class="section-text" wx:if="{{viewReport.generatedReportText}}">{{viewReport.generatedReportText}}</view>
+  <view class="app-card">
+    <view class="app-section-title section-gap">智能分析</view>
+    <view class="app-body" wx:if="{{canGenerateReport}}">把这次已完整缓存的 1 分钟检测数据发送给模型，生成针对本次检测的文字分析。</view>
+    <view class="app-body" wx:elif="{{hasStoredReport}}">这次检测已归档，但数据尚未完整，暂时只能查看曲线与参数。</view>
+    <view class="app-body" wx:else>还没有可分析的检测记录，完成一次 60 秒检测后即可生成。</view>
+
+    <button class="app-button app-button--primary report-button" bindtap="generateReport" loading="{{reportStatus === 'running'}}">
+      {{reportStatus === 'running' ? '生成中' : '生成本次分析'}}
+    </button>
+
+    <view class="app-muted report-feedback" wx:if="{{reportFeedback}}">{{reportFeedback}}</view>
+    <view class="app-muted" wx:if="{{viewReport.generatedReportUpdatedAt}}">生成于 {{viewReport.generatedReportUpdatedAt}}</view>
+    <view class="report-error" wx:if="{{viewReport.generatedReportError}}">生成失败：{{viewReport.generatedReportError}}</view>
+    <view class="app-body report-text" wx:if="{{viewReport.generatedReportText}}">{{viewReport.generatedReportText}}</view>
   </view>
 
-  <view class="report-panel" wx:if="{{viewReport.reportSections && viewReport.reportSections.length}}">
-    <view class="panel-title">详细板块</view>
-    <block wx:for="{{viewReport.reportSections}}" wx:key="heading">
+  <view class="app-card" wx:if="{{viewReport.reportSections && viewReport.reportSections.length}}">
+    <view class="app-section-title section-gap">详细板块</view>
+    <block wx:for="{{viewReport.reportSections}}" wx:for-item="section" wx:key="heading">
       <view class="section-block">
-        <view class="section-heading">{{item.heading}}</view>
-        <view class="section-text">{{item.body}}</view>
+        <view class="section-heading">{{section.heading}}</view>
+        <view class="app-body">{{section.body}}</view>
       </view>
     </block>
-  </view>
-
-  <view class="report-panel">
-    <view class="panel-title">记录详情</view>
-    <view class="section-text">处理点数 {{viewReport.processedPointCount || 0}}</view>
-    <view class="section-text">完整前端缓存点数 {{viewReport.fullProcessedPointCount || 0}} / beat {{viewReport.fullBeatCount || 0}}</view>
-    <view class="section-text" wx:if="{{viewReport.archiveMode}}">记录来源 {{viewReport.archiveMode}}</view>
-    <view class="section-text" wx:if="{{viewReport.receivedFragmentCount || viewReport.fragmentTotal}}">窗口分片 {{viewReport.receivedFragmentCount || 0}} / {{viewReport.fragmentTotal || 0}}</view>
   </view>
 </view>

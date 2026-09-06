@@ -1,47 +1,81 @@
 <view class="history-page">
-  <view class="history-hero">
-    <view class="hero-title">主动检测历史</view>
-    <view class="hero-subtitle">这里只显示已收到并缓存下来的真实主动检测记录。</view>
+  <view class="page-topbar">
+    <view class="app-title">记录</view>
+    <view class="app-muted" wx:if="{{activeTab === 'active'}}">共 {{activeCount}} 条主动检测记录，按时间由近到远排列。</view>
+    <view class="app-muted" wx:else>共 {{dailyCount}} 天监测记录，按日期由近到远排列。</view>
   </view>
 
-  <view wx:if="{{!activeMeasurements.length}}" class="history-card empty-card">
-    <view class="history-copy">暂无真实主动检测记录。</view>
+  <view class="seg">
+    <view class="seg-item {{activeTab === 'active' ? 'seg-item--on' : ''}}" bindtap="switchRecordTab" data-tab="active">主动检测</view>
+    <view class="seg-item {{activeTab === 'daily' ? 'seg-item--on' : ''}}" bindtap="switchRecordTab" data-tab="daily">每日分析</view>
   </view>
 
-  <block wx:for="{{activeMeasurements}}" wx:key="id">
-    <view class="history-card">
-      <view class="history-head">
-        <view>
-          <view class="history-tag">{{item.resultTag}}</view>
-          <view class="history-title">{{item.title}}</view>
+  <block wx:if="{{activeTab === 'active'}}">
+    <view wx:if="{{!activeMeasurements.length}}" class="app-card">
+      <view class="app-empty">还没有检测记录。完成一次设备检测后会自动归档到这里。</view>
+    </view>
+
+    <block wx:for="{{activeMeasurements}}" wx:key="id">
+      <view class="app-card record-card">
+        <view class="record-head">
+          <view class="record-tag">{{item.resultTag}}</view>
+          <view class="app-muted">{{item.startedAt}}</view>
         </view>
-        <view class="history-time">{{item.startedAt}}</view>
+
+        <view class="record-title">{{item.title}}</view>
+        <view class="app-body" wx:if="{{item.summary}}">{{item.summary}}</view>
+
+        <view class="record-metrics">
+          <block wx:for="{{item.metrics}}" wx:for-item="metric" wx:key="label">
+            <view class="record-metric">
+              <view class="record-metric-value">{{metric.value}}{{metric.unit}}</view>
+              <view class="app-metric-label">{{metric.label}}</view>
+            </view>
+          </block>
+        </view>
+
+        <view class="record-meta">
+          <text class="app-muted">时长 {{item.durationLabel}}</text>
+        </view>
+
+        <view class="history-copy" wx:if="{{item.generatedReportText}}">{{item.generatedReportText}}</view>
+        <view class="app-muted record-foot" wx:if="{{item.generatedReportUpdatedAt}}">报告生成于 {{item.generatedReportUpdatedAt}}</view>
+
+        <view class="record-actions">
+          <button class="app-button app-button--ghost record-btn" bindtap="generateReport" data-id="{{item.id}}">重新生成报告</button>
+          <button class="app-button app-button--outline record-btn" bindtap="openReport" data-id="{{item.id}}">查看报告</button>
+        </view>
+      </view>
+    </block>
+  </block>
+
+  <block wx:else>
+    <view wx:if="{{!dailyAnalyses.length}}" class="app-card">
+      <view class="app-empty">暂无按日归档的监测数据。设备上报后会自动按天整理。</view>
+    </view>
+
+    <view class="app-card record-card daily-card" wx:for="{{dailyAnalyses}}" wx:key="dayKey" bindtap="openDaily" data-day="{{item.dayKey}}">
+      <view class="record-head">
+        <view class="record-title">{{item.day}}</view>
+        <view class="app-card-head__link">详情</view>
       </view>
 
-      <view class="history-copy">{{item.summary}}</view>
-
-      <view class="metric-grid">
-        <block wx:for="{{item.metrics}}" wx:key="label">
-          <view class="metric-card">
-            <view class="metric-value">{{item.value}}{{item.unit}}</view>
-            <view class="metric-label">{{item.label}}</view>
-          </view>
-        </block>
+      <view class="daily-metrics">
+        <view class="daily-metric">
+          <view class="daily-metric-value">{{item.respirationAvg || '--'}}</view>
+          <view class="app-metric-label">平均呼吸（次/分）</view>
+        </view>
+        <view class="daily-metric">
+          <view class="daily-metric-value">{{item.heartRateAvg || '--'}}</view>
+          <view class="app-metric-label">平均心率（bpm）</view>
+        </view>
+        <view class="daily-metric">
+          <view class="daily-metric-value">{{item.windowCount || '--'}}</view>
+          <view class="app-metric-label">监测窗口（个）</view>
+        </view>
       </view>
 
-      <view class="history-footer">
-        <view class="duration-chip">时长 {{item.durationLabel}}</view>
-        <view class="detail-link" bindtap="openReport" data-id="{{item.id}}">查看报告</view>
-      </view>
-
-      <view class="history-actions">
-        <button class="history-button solid" bindtap="generateReport" data-id="{{item.id}}">生成报告</button>
-        <button class="history-button outline" bindtap="openReport" data-id="{{item.id}}">报告详情</button>
-      </view>
-
-      <view class="history-copy subtle-copy" wx:if="{{item.generatedReportUpdatedAt}}">最近报告 {{item.generatedReportUpdatedAt}} · {{item.generatedReportSource || 'unknown'}}</view>
-      <view class="history-copy subtle-copy" wx:if="{{item.generatedReportText}}">{{item.generatedReportText}}</view>
-      <view class="history-copy subtle-copy" wx:if="{{item.generatedReportError}}">错误 {{item.generatedReportError}}</view>
+      <view class="app-body" wx:if="{{item.summary}}">{{item.summary}}</view>
     </view>
   </block>
 </view>

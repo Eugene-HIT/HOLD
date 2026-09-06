@@ -2,7 +2,11 @@ const holdBleRuntime = require('../../utils/hold-ble-runtime');
 
 Page({
   data: {
-    activeMeasurements: []
+    activeTab: 'active',
+    activeMeasurements: [],
+    dailyAnalyses: [],
+    activeCount: 0,
+    dailyCount: 0
   },
 
   buildMeasurementPreviewList(measurements) {
@@ -21,10 +25,27 @@ Page({
     }));
   },
 
+  buildDailyPreviewList(days) {
+    return (Array.isArray(days) ? days : []).map((item) => ({
+      dayKey: `${item.dayKey || item.day || ''}`,
+      day: item.day || '',
+      title: item.title || '',
+      respirationAvg: item.respirationAvg,
+      heartRateAvg: item.heartRateAvg,
+      windowCount: item.windowCount,
+      summary: item.summary || ''
+    }));
+  },
+
   onLoad() {
     this.unsubscribeRuntime = holdBleRuntime.subscribe((state) => {
+      const activeMeasurements = this.buildMeasurementPreviewList(state.activeMeasurements || []);
+      const dailyAnalyses = this.buildDailyPreviewList(state.dailyAnalyses || []);
       this.setData({
-        activeMeasurements: this.buildMeasurementPreviewList(state.activeMeasurements || [])
+        activeMeasurements,
+        dailyAnalyses,
+        activeCount: activeMeasurements.length,
+        dailyCount: dailyAnalyses.length
       });
     });
   },
@@ -34,6 +55,14 @@ Page({
       this.unsubscribeRuntime();
       this.unsubscribeRuntime = null;
     }
+  },
+
+  switchRecordTab(event) {
+    const tab = event.currentTarget.dataset.tab;
+    if (!tab || tab === this.data.activeTab) {
+      return;
+    }
+    this.setData({ activeTab: tab });
   },
 
   openReport(event) {
@@ -54,5 +83,14 @@ Page({
     }
 
     await holdBleRuntime.requestActiveMeasurementInsight(id, { force: true });
+  },
+
+  openDaily(event) {
+    const { day } = event.currentTarget.dataset;
+    wx.navigateTo({
+      url: day
+        ? `/pages/daily-analysis/index?day=${encodeURIComponent(day)}`
+        : '/pages/daily-analysis/index'
+    });
   }
 });

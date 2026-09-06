@@ -2,16 +2,42 @@
   "pages": [
     "pages/home/index",
     "pages/active-history/index",
+    "pages/overall-analysis/index",
     "pages/active-report/index",
     "pages/daily-analysis/index",
-    "pages/overall-analysis/index",
-    "pages/index/index"
+    "pages/debug/index"
   ],
   "window": {
     "navigationBarBackgroundColor": "#F6F2E8",
     "navigationBarTitleText": "HOLD",
     "navigationBarTextStyle": "black",
     "backgroundColor": "#F6F2E8"
+  },
+  "tabBar": {
+    "color": "#9A9A8E",
+    "selectedColor": "#2F5D3A",
+    "backgroundColor": "#FFFDF7",
+    "borderStyle": "white",
+    "list": [
+      {
+        "pagePath": "pages/home/index",
+        "text": "首页",
+        "iconPath": "images/tab-home.png",
+        "selectedIconPath": "images/tab-home-active.png"
+      },
+      {
+        "pagePath": "pages/active-history/index",
+        "text": "记录",
+        "iconPath": "images/tab-history.png",
+        "selectedIconPath": "images/tab-history-active.png"
+      },
+      {
+        "pagePath": "pages/overall-analysis/index",
+        "text": "分析",
+        "iconPath": "images/tab-analysis.png",
+        "selectedIconPath": "images/tab-analysis-active.png"
+      }
+    ]
   },
   "style": "v2",
   "sitemapLocation": "sitemap.json"

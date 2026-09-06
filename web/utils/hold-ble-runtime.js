@@ -694,6 +694,50 @@ function buildFallbackInsight() {
   return overall;
 }
 
+function normalizeInsightJson(json, fallback) {
+  const modelSections = Array.isArray(json.sections) ? json.sections : [];
+  const mergedSections = fallback.sections.map((fallbackSection) => {
+    const found = modelSections.filter((item) => item && item.key === fallbackSection.key)[0];
+    if (found && found.body) {
+      return {
+        key: fallbackSection.key,
+        title: found.title || fallbackSection.title,
+        body: found.body
+      };
+    }
+    return fallbackSection;
+  });
+
+  return {
+    title: json.title || fallback.title,
+    summary: json.summary || fallback.summary,
+    advice: json.advice || fallback.advice,
+    updatedAt: formatDateTime(Date.now()),
+    sections: mergedSections
+  };
+}
+
+function extractInsightJsonText(replyText) {
+  let text = `${replyText}`.trim();
+
+  const fenceMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if (fenceMatch && fenceMatch[1]) {
+    text = fenceMatch[1].trim();
+  }
+
+  if (text.startsWith('{') && text.endsWith('}')) {
+    return text;
+  }
+
+  const start = text.indexOf('{');
+  const end = text.lastIndexOf('}');
+  if (start >= 0 && end > start) {
+    return text.slice(start, end + 1);
+  }
+
+  return text;
+}
+
 function parseInsightReply(replyText) {
   const fallback = buildFallbackInsight();
   if (!replyText) {
@@ -701,18 +745,10 @@ function parseInsightReply(replyText) {
   }
 
   try {
-    const json = JSON.parse(replyText);
-    return {
-      title: json.title || fallback.title,
-      summary: json.summary || fallback.summary,
-      advice: json.advice || fallback.advice,
-      updatedAt: formatDateTime(Date.now()),
-      sections: Array.isArray(json.sections) && json.sections.length
-        ? json.sections
-        : fallback.sections
-    };
+    const json = JSON.parse(extractInsightJsonText(replyText));
+    return normalizeInsightJson(json, fallback);
   } catch (error) {
-    fallback.summary = replyText.trim();
+    fallback.summary = `${replyText}`.trim();
     fallback.updatedAt = formatDateTime(Date.now());
     return fallback;
   }
@@ -1527,6 +1563,36 @@ function startBreathGuide() {
   });
 }
 
+function startActiveTest(options = {}) {
+  return new Promise((resolve, reject) => {
+    if (!runtime.state.isConnected || !runtime.state.deviceId || !runtime.state.serviceId || !runtime.state.writeCharacteristicId) {
+      reject(new Error('bluetooth-not-ready'));
+      return;
+    }
+
+    const commandText = JSON.stringify({
+      cmd: 'start_active_test',
+      duration_ms: Number(options.durationMs || 60000)
+    });
+
+    wx.writeBLECharacteristicValue({
+      deviceId: runtime.state.deviceId,
+      serviceId: runtime.state.serviceId,
+      characteristicId: runtime.state.writeCharacteristicId,
+      value: stringToArrayBuffer(commandText),
+      success: () => {
+        pushDebugLog(`已发送主动检测启动命令 duration=${options.durationMs || 60000}ms`);
+        emitState();
+        resolve({ ok: true });
+      },
+      fail: (error) => {
+        pushDebugLog(`主动检测启动命令发送失败: ${error && (error.errMsg || error.errCode) ? error.errMsg || error.errCode : 'write-failed'}`);
+        reject(new Error(error && (error.errMsg || error.errCode) ? `${error.errMsg || error.errCode}` : 'write-failed'));
+      }
+    });
+  });
+}
+
 function clearCachedData() {
   resetLiveData();
   runtime.state.debugLogs = [];
@@ -1765,6 +1831,7 @@ module.exports = {
   requestActiveMeasurementInsight,
   requestOverallInsightRefresh,
   startBreathGuide,
+  startActiveTest,
   startScanAndConnect,
   disconnect,
   clearCachedData
