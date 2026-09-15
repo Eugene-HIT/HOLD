@@ -1,6 +1,6 @@
 {
   "libVersion": "3.16.1",
-  "projectname": "HOLD",
+  "projectname": "web",
   "setting": {
     "urlCheck": true,
     "coverView": true,
@@ -9,14 +9,6 @@
     "preloadBackgroundData": false,
     "autoAudits": false,
     "showShadowRootInWxmlPanel": true,
-    "compileHotReLoad": true,
-    "useApiHook": true,
-    "useApiHostProcess": true,
-    "useStaticServer": false,
-    "useLanDebug": false,
-    "showES6CompileOption": false,
-    "checkInvalidKey": true,
-    "ignoreDevUnusedFiles": false,
-    "bigPackageSizeSupport": false
+    "compileHotReLoad": true
   }
 }

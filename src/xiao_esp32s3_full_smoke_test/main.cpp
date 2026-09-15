@@ -14,6 +14,11 @@
  */
 
 #include <Arduino.h>
+#include <BLE2902.h>
+#include <BLEDevice.h>
+#include <BLEServer.h>
+#include <BLEUtils.h>
+#include <math.h>
 #include <Wire.h>
 
 #include <Adafruit_DRV2605.h>
@@ -26,9 +31,14 @@
 namespace {
 
 constexpr uint32_t kSerialBaudRate = 115200;
+constexpr char kBleDeviceName[] = "HOLD-INTEGRATED";
+constexpr char kBleServiceUuid[] = "19B10010-E8F2-537E-4F6C-D104768A1214";
+constexpr char kBleEventUuid[] = "19B10011-E8F2-537E-4F6C-D104768A1214";
+constexpr char kBleCommandUuid[] = "19B10013-E8F2-537E-4F6C-D104768A1214";
 constexpr unsigned long kStartupDelayMs = 300;
 constexpr unsigned long kSerialAttachWaitMs = 1500;
 constexpr unsigned long kStatusLogIntervalMs = 200;
+constexpr unsigned long kBleNotifyIntervalMs = 500;
 constexpr unsigned long kMpuPollIntervalMs = 20;
 constexpr unsigned long kPpgPollIntervalMs = project_config::kSensorPollIntervalMs;
 constexpr unsigned long kPressurePollIntervalMs = project_config::kPressurePollIntervalMs;
@@ -44,15 +54,16 @@ constexpr uint8_t kMpuRegisterAccelXoutH = 0x3B;
 constexpr float kAccelScaleLsbPerG = 16384.0f;
 constexpr float kGyroScaleLsbPerDps = 131.0f;
 
-constexpr unsigned long kHapticToggleIntervalMs = 1200;
-constexpr uint8_t kHapticActiveRtp = 0x7F;
+constexpr unsigned long kHapticToggleIntervalMs = 700;
+constexpr unsigned long kBreathHapticStepMs = 120;
+constexpr unsigned long kCalibrationDurationMs = 12000;
+constexpr unsigned long kCalibrationPulseMs = 250;
 
 constexpr uint8_t kHeaterControlPin = 2;   // D1/A1
 constexpr uint8_t kHeaterPwmChannel = 2;
 constexpr uint32_t kHeaterPwmFrequencyHz = 5000;
 constexpr uint8_t kHeaterPwmResolutionBits = 8;
 constexpr uint32_t kHeaterPwmDuty80Percent = 204;
-constexpr bool kEnableHeaterOutput = false;
 constexpr unsigned long kHeaterEnableDelayMs = 5000;
 
 constexpr uint8_t kRgbRedPin = 7;    // D8
@@ -93,18 +104,78 @@ struct ImuIdentity {
   float temperatureOffset;
 };
 
+class RespirationEstimator {
+ public:
+  void reset() {
+    initialized_ = false;
+    smoothedSignal_ = 0.0f;
+    previousSignal_ = 0.0f;
+    lastCrossingAtMs_ = 0;
+    bpm_ = 0.0f;
+  }
+
+  void addPressureSample(const PressureFilmRawReader::Sample& sample, uint16_t baselineRaw, uint16_t peakDeltaRaw) {
+    const float signal = static_cast<float>(sample.rawAverage) - static_cast<float>(baselineRaw);
+    if (!initialized_) {
+      initialized_ = true;
+      smoothedSignal_ = signal;
+      previousSignal_ = signal;
+      return;
+    }
+
+    smoothedSignal_ = smoothedSignal_ * 0.88f + signal * 0.12f;
+    const float threshold = constrain(static_cast<float>(peakDeltaRaw) * 0.18f, 10.0f, 80.0f);
+    const bool crossedUp = previousSignal_ < -threshold && smoothedSignal_ >= threshold;
+    previousSignal_ = smoothedSignal_;
+    if (!crossedUp) {
+      if (lastCrossingAtMs_ > 0 && sample.capturedAtMs - lastCrossingAtMs_ > 15000UL) {
+        bpm_ = 0.0f;
+      }
+      return;
+    }
+
+    if (lastCrossingAtMs_ > 0) {
+      const unsigned long periodMs = sample.capturedAtMs - lastCrossingAtMs_;
+      if (periodMs >= 2500UL && periodMs <= 10000UL) {
+        const float instantBpm = 60000.0f / static_cast<float>(periodMs);
+        bpm_ = bpm_ <= 0.0f ? instantBpm : bpm_ * 0.70f + instantBpm * 0.30f;
+      }
+    }
+    lastCrossingAtMs_ = sample.capturedAtMs;
+  }
+
+  float bpm() const {
+    return bpm_;
+  }
+
+ private:
+  bool initialized_ = false;
+  float smoothedSignal_ = 0.0f;
+  float previousSignal_ = 0.0f;
+  unsigned long lastCrossingAtMs_ = 0;
+  float bpm_ = 0.0f;
+};
+
 Max30102RawReader ppgReader;
 HeartRateEstimator heartRateEstimator;
+RespirationEstimator respirationEstimator;
 PressureFilmRawReader pressureReader;
 Adafruit_DRV2605 hapticDriver;
+BLECharacteristic* bleEventCharacteristic = nullptr;
+BLECharacteristic* bleCommandCharacteristic = nullptr;
 
 bool mpuReady = false;
 bool ppgReady = false;
 bool pressureReady = false;
 bool hapticReady = false;
+volatile bool bleClientConnected = false;
 uint8_t activeMpuAddress = 0;
 bool hapticOutputEnabled = false;
+volatile bool breathGuideEnabled = false;
+volatile bool calibrationRunning = false;
+volatile bool calibrationCompleted = false;
 uint8_t currentHapticRtp = 0;
+uint8_t breathHapticStep = 0;
 uint8_t activeLedIndex = 0;
 bool heaterEnabled = false;
 bool boardHeartbeatOn = false;
@@ -119,11 +190,14 @@ unsigned long lastMpuPollAtMs = 0;
 unsigned long lastPpgPollAtMs = 0;
 unsigned long lastPressurePollAtMs = 0;
 unsigned long lastStatusLogAtMs = 0;
+unsigned long lastBleNotifyAtMs = 0;
 unsigned long lastReconnectAtMs = 0;
 unsigned long lastHapticToggleAtMs = 0;
+volatile unsigned long calibrationStartedAtMs = 0;
 unsigned long lastLedRunnerAtMs = 0;
 unsigned long lastBoardHeartbeatAtMs = 0;
 uint32_t lastPpgSequence = 0;
+uint32_t bleNotifySequence = 0;
 
 MpuSample lastMpuSample{};
 MpuMetrics lastMpuMetrics{};
@@ -179,6 +253,217 @@ const char* currentLedLabel() {
 
 char visibleFlag(bool visible) {
   return visible ? 'Y' : 'N';
+}
+
+void setHapticRtp(uint8_t rtp) {
+  currentHapticRtp = rtp;
+  hapticOutputEnabled = rtp > 0;
+  if (hapticReady) {
+    hapticDriver.setRealtimeValue(rtp);
+  }
+}
+
+const char* motionLabel() {
+  const float gx = fabs(lastMpuMetrics.gyroXdps);
+  const float gy = fabs(lastMpuMetrics.gyroYdps);
+  const float gz = fabs(lastMpuMetrics.gyroZdps);
+  float strongestGyro = gx;
+  if (gy > strongestGyro) {
+    strongestGyro = gy;
+  }
+  if (gz > strongestGyro) {
+    strongestGyro = gz;
+  }
+  if (!mpuReady) {
+    return "imu-miss";
+  }
+  if (strongestGyro > 80.0f) {
+    return "active";
+  }
+  if (strongestGyro > 25.0f) {
+    return "moving";
+  }
+  return "still";
+}
+
+const char* motionCode() {
+  const char* label = motionLabel();
+  if (strcmp(label, "active") == 0) return "a";
+  if (strcmp(label, "moving") == 0) return "m";
+  if (strcmp(label, "imu-miss") == 0) return "x";
+  return "s";
+}
+
+const char* guidePhaseLabel() {
+  if (calibrationRunning) {
+    return "c";
+  }
+  if (!breathGuideEnabled) {
+    return "n";
+  }
+  return breathHapticStep < 20 ? "i" : "e";
+}
+
+const char* packetTypeAlias(const char* packetType) {
+  if (strcmp(packetType, "telemetry") == 0) return "tel";
+  if (strcmp(packetType, "breath_started") == 0) return "b_start";
+  if (strcmp(packetType, "breath_stopped") == 0) return "b_stop";
+  if (strcmp(packetType, "calibration_started") == 0) return "cal_start";
+  if (strcmp(packetType, "calibration_done") == 0) return "cal_done";
+  return packetType;
+}
+
+String buildBleStatusJson(const char* packetType) {
+  String payload = "{";
+  payload += "\"t\":\"";
+  payload += packetTypeAlias(packetType);
+  payload += "\",\"seq\":";
+  payload += String(++bleNotifySequence);
+  payload += ",\"br\":";
+  payload += (respirationEstimator.bpm() > 0.0f ? String(respirationEstimator.bpm(), 1) : "0");
+  payload += ",\"hr\":";
+  const float heartRateBpm = heartRateEstimator.bpm();
+  payload += (heartRateEstimator.hasValidBpm() && heartRateBpm >= 45.0f && heartRateBpm <= 180.0f ? String(heartRateBpm, 1) : "0");
+  payload += ",\"bt\":";
+  payload += String(lastMpuMetrics.temperatureC, 1);
+  payload += ",\"bc\":";
+  payload += String(heartRateEstimator.beatCount());
+  payload += ",\"m\":\"";
+  payload += motionCode();
+  payload += ",\"ph\":\"";
+  payload += guidePhaseLabel();
+  payload += "\",\"hp\":";
+  payload += (hapticReady ? "1" : "0");
+  payload += ",\"bg\":";
+  payload += (breathGuideEnabled ? "1" : "0");
+  payload += ",\"cg\":";
+  payload += (calibrationRunning ? "1" : "0");
+  payload += ",\"pr\":";
+  payload += String(lastPressureSample.rawAverage);
+  payload += ",\"pl\":";
+  payload += String(lastPressureSample.level);
+  payload += ",\"ir\":";
+  payload += String(lastPpgSample.ir);
+  payload += ",\"red\":";
+  payload += String(lastPpgSample.red);
+  payload += ",\"ct\":";
+  payload += (heartRateEstimator.contactPresent() ? "1" : "0");
+  payload += ",\"wear\":";
+  payload += ((heartRateEstimator.contactPresent() || lastPressureSample.level > 0) ? "1" : "0");
+  payload += ",\"cc\":";
+  payload += (calibrationCompleted ? "1" : "0");
+  payload += "}";
+  return payload;
+}
+
+void notifyBleStatus(const char* packetType) {
+  if (bleEventCharacteristic == nullptr || !bleClientConnected) {
+    return;
+  }
+  const String payload = buildBleStatusJson(packetType);
+  bleEventCharacteristic->setValue(payload.c_str());
+  bleEventCharacteristic->notify();
+}
+
+void notifyCalibrationDoneBurst() {
+  if (bleEventCharacteristic == nullptr || !bleClientConnected) {
+    return;
+  }
+  const String payload = "{\"t\":\"cal_done\",\"cc\":1}";
+  for (uint8_t index = 0; index < 3; ++index) {
+    bleEventCharacteristic->setValue(payload.c_str());
+    bleEventCharacteristic->notify();
+    delay(35);
+  }
+}
+
+void stopGuidedFeedback() {
+  breathGuideEnabled = false;
+  calibrationRunning = false;
+  setHapticRtp(0);
+}
+
+void handleBleCommand(const String& command) {
+  Serial.println("[ble][cmd] " + command);
+  if (command.indexOf("breath_start") >= 0) {
+    calibrationRunning = false;
+    calibrationCompleted = false;
+    respirationEstimator.reset();
+    breathGuideEnabled = true;
+    breathHapticStep = 0;
+    lastHapticToggleAtMs = 0;
+    notifyBleStatus("breath_started");
+    return;
+  }
+
+  if (command.indexOf("breath_stop") >= 0) {
+    stopGuidedFeedback();
+    notifyBleStatus("breath_stopped");
+    return;
+  }
+
+  if (command.indexOf("calibrate_start") >= 0) {
+    breathGuideEnabled = false;
+    calibrationCompleted = false;
+    respirationEstimator.reset();
+    calibrationStartedAtMs = millis();
+    lastHapticToggleAtMs = 0;
+    calibrationRunning = true;
+    notifyBleStatus("calibration_started");
+    return;
+  }
+
+  notifyBleStatus("unknown_command");
+}
+
+class IntegratedCommandCallbacks final : public BLECharacteristicCallbacks {
+ public:
+  void onWrite(BLECharacteristic* characteristic) override {
+    const std::string value = characteristic->getValue();
+    String command(value.c_str());
+    command.trim();
+    handleBleCommand(command);
+  }
+};
+
+class IntegratedServerCallbacks final : public BLEServerCallbacks {
+ public:
+  void onConnect(BLEServer*) override {
+    bleClientConnected = true;
+    Serial.println("[ble] client connected");
+    notifyBleStatus("connected");
+  }
+
+  void onDisconnect(BLEServer*) override {
+    bleClientConnected = false;
+    stopGuidedFeedback();
+    Serial.println("[ble] client disconnected, restart advertising");
+    BLEDevice::startAdvertising();
+  }
+};
+
+void setupBle() {
+  BLEDevice::init(kBleDeviceName);
+  BLEDevice::setMTU(247);
+
+  BLEServer* server = BLEDevice::createServer();
+  server->setCallbacks(new IntegratedServerCallbacks());
+
+  BLEService* service = server->createService(kBleServiceUuid);
+  bleEventCharacteristic = service->createCharacteristic(kBleEventUuid, BLECharacteristic::PROPERTY_NOTIFY);
+  bleEventCharacteristic->addDescriptor(new BLE2902());
+
+  bleCommandCharacteristic = service->createCharacteristic(
+      kBleCommandUuid,
+      BLECharacteristic::PROPERTY_WRITE | BLECharacteristic::PROPERTY_WRITE_NR);
+  bleCommandCharacteristic->setCallbacks(new IntegratedCommandCallbacks());
+
+  service->start();
+  BLEAdvertising* advertising = BLEDevice::getAdvertising();
+  advertising->addServiceUUID(service->getUUID());
+  advertising->setScanResponse(true);
+  BLEDevice::startAdvertising();
+  Serial.println("[ble] advertising HOLD-INTEGRATED");
 }
 
 void logBootStage(const char* stage) {
@@ -340,11 +625,6 @@ void setupHeaterPwm() {
 }
 
 void updateHeaterOutput(unsigned long nowMs) {
-  if (!kEnableHeaterOutput) {
-    ledcWrite(kHeaterPwmChannel, 0);
-    return;
-  }
-
   if (heaterEnabled || nowMs < kHeaterEnableDelayMs) {
     return;
   }
@@ -389,8 +669,30 @@ void updateLedRunner(unsigned long nowMs) {
   }
 
   lastLedRunnerAtMs = nowMs;
-  activeLedIndex = (activeLedIndex + 1) % 3;
-  setRgbState(activeLedIndex == 0, activeLedIndex == 1, activeLedIndex == 2);
+  if (calibrationRunning) {
+    boardHeartbeatOn = !boardHeartbeatOn;
+    setRgbState(false, boardHeartbeatOn, false);
+    return;
+  }
+
+  if (breathGuideEnabled) {
+    boardHeartbeatOn = !boardHeartbeatOn;
+    setRgbState(boardHeartbeatOn, false, boardHeartbeatOn);
+    return;
+  }
+
+  if (!bleClientConnected) {
+    boardHeartbeatOn = !boardHeartbeatOn;
+    setRgbState(false, false, boardHeartbeatOn);
+    return;
+  }
+
+  if (calibrationCompleted) {
+    setRgbState(false, true, false);
+    return;
+  }
+
+  setRgbState(false, false, true);
 }
 
 void updateBoardHeartbeat(unsigned long nowMs) {
@@ -447,6 +749,10 @@ void pollPressure() {
   }
 
   pressureReader.readLatestSample(lastPressureSample);
+  respirationEstimator.addPressureSample(
+      lastPressureSample,
+      pressureReader.baselineRaw(),
+      pressureReader.peakDeltaRaw());
 }
 
 void updateHapticPattern(unsigned long nowMs) {
@@ -454,14 +760,44 @@ void updateHapticPattern(unsigned long nowMs) {
     return;
   }
 
+  if (calibrationRunning) {
+    if (nowMs - calibrationStartedAtMs >= kCalibrationDurationMs) {
+      stopGuidedFeedback();
+      calibrationCompleted = true;
+      notifyCalibrationDoneBurst();
+      return;
+    }
+
+    if (nowMs - lastHapticToggleAtMs < kCalibrationPulseMs) {
+      return;
+    }
+
+    lastHapticToggleAtMs = nowMs;
+    setHapticRtp(hapticOutputEnabled ? 0x00 : 0x35);
+    return;
+  }
+
+  if (breathGuideEnabled) {
+    if (nowMs - lastHapticToggleAtMs < kBreathHapticStepMs) {
+      return;
+    }
+
+    lastHapticToggleAtMs = nowMs;
+    const uint8_t phase = breathHapticStep++ % 40;
+    const uint8_t rtp = phase < 20 ? phase * 4 : (39 - phase) * 4;
+    setHapticRtp(rtp);
+    return;
+  }
+
+  if (currentHapticRtp != 0) {
+    setHapticRtp(0);
+  }
+
   if (nowMs - lastHapticToggleAtMs < kHapticToggleIntervalMs) {
     return;
   }
 
   lastHapticToggleAtMs = nowMs;
-  hapticOutputEnabled = !hapticOutputEnabled;
-  currentHapticRtp = hapticOutputEnabled ? kHapticActiveRtp : 0x00;
-  hapticDriver.setRealtimeValue(currentHapticRtp);
 }
 
 void tryReconnectAll(unsigned long nowMs) {
@@ -520,7 +856,7 @@ void printStatus(unsigned long nowMs) {
       static_cast<unsigned>(lastPressureSample.level),
       hapticReady ? (hapticOutputEnabled ? "ON" : "OFF") : "MISS",
       static_cast<unsigned>(currentHapticRtp),
-      kEnableHeaterOutput ? (heaterEnabled ? "PWM80" : "WAIT") : "FORCED_OFF",
+      heaterEnabled ? "PWM80" : "WAIT",
       static_cast<unsigned>(kHeaterControlPin),
       currentLedLabel());
 }
@@ -582,7 +918,7 @@ void setup() {
   pulseBoardLed(8);
 
   Serial.printf(
-      "[smoke] init | i2c 57=%c 68=%c 69=%c 5A=%c | imu=%s | ppg=%s | pressure=%s | motor=%s | heater=forced-off gpio=%u | led_runner=D8/D9/D10\n",
+      "[smoke] init | i2c 57=%c 68=%c 69=%c 5A=%c | imu=%s | ppg=%s | pressure=%s | motor=%s | heater=wait->80%% gpio=%u | led_runner=D8/D9/D10\n",
       visibleFlag(max30102Seen),
       visibleFlag(mpuAddressLowSeen),
       visibleFlag(mpuAddressHighSeen),
@@ -592,6 +928,9 @@ void setup() {
       pressureReady ? "OK" : "MISS",
       hapticReady ? "OK" : "MISS",
       static_cast<unsigned>(kHeaterControlPin));
+
+  logBootStage("ble-start");
+  setupBle();
 
   logBootStage("setup-done");
   writeBoardLed(false);
@@ -625,5 +964,10 @@ void loop() {
   if (nowMs - lastStatusLogAtMs >= kStatusLogIntervalMs) {
     lastStatusLogAtMs = nowMs;
     printStatus(nowMs);
+  }
+
+  if (nowMs - lastBleNotifyAtMs >= kBleNotifyIntervalMs) {
+    lastBleNotifyAtMs = nowMs;
+    notifyBleStatus("telemetry");
   }
 }

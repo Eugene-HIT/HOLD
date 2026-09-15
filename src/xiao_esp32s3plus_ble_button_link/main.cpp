@@ -1,124 +1,220 @@
-/*
- * 创建时间：2026-06-17
- * 文件职责：XIAO ESP32S3 Plus 按钮 BLE 最小链路验证固件。
- * 核心输入输出：输入为板载 Boot 按钮按下事件；输出为 BLE 按钮事件通知与串口状态日志。
- * 最后更改时间：2026-06-17
- * 更改日志：
- * - 2026-06-17：新增按钮事件 BLE 链路最小骨架，用于小程序、云函数、云存储、LLM 全链路打通。
- * 注意事项：
- * - 当前默认把板载 Boot 键(GPIO0)作为临时测试按钮，只用于本轮链路验证。
- * - 若 Boot 键影响下载或启动稳定性，应切换为外接普通 GPIO 按键。
- */
-
 #include <Arduino.h>
-#include <BLEDevice.h>
 #include <BLE2902.h>
+#include <BLEDevice.h>
 #include <BLEServer.h>
 #include <BLEUtils.h>
+#include <Wire.h>
+
+#include <Adafruit_DRV2605.h>
 
 namespace {
 constexpr char kDeviceName[] = "HOLD-LINK-TEST";
+constexpr char kServiceUuid[] = "19B10010-E8F2-537E-4F6C-D104768A1214";
+constexpr char kEventUuid[] = "19B10011-E8F2-537E-4F6C-D104768A1214";
+constexpr char kInfoUuid[] = "19B10012-E8F2-537E-4F6C-D104768A1214";
+constexpr char kCommandUuid[] = "19B10013-E8F2-537E-4F6C-D104768A1214";
+
 constexpr uint8_t kButtonPin = 0;
 constexpr uint8_t kUserLedPin = 21;
 constexpr uint32_t kDebounceMs = 180;
+constexpr uint32_t kTelemetryMs = 1000;
+constexpr uint32_t kBreathStepMs = 120;
+constexpr uint32_t kCalibrationMs = 12000;
 
-BLECharacteristic *eventCharacteristic = nullptr;
-BLECharacteristic *infoCharacteristic = nullptr;
+BLECharacteristic* eventCharacteristic = nullptr;
+BLECharacteristic* commandCharacteristic = nullptr;
+Adafruit_DRV2605 haptic;
+
 bool isClientConnected = false;
-uint32_t pressCount = 0;
+bool hapticReady = false;
+bool breathEnabled = false;
+bool calibrationRunning = false;
 bool lastStableButtonState = HIGH;
 bool lastRawButtonState = HIGH;
+uint32_t pressCount = 0;
+uint32_t breathStep = 0;
+uint32_t calibrationStartedAtMs = 0;
 uint32_t lastDebounceAtMs = 0;
 uint32_t lastAdvertiseLogAtMs = 0;
+uint32_t lastTelemetryAtMs = 0;
+uint32_t lastBreathStepAtMs = 0;
+
+String jsonPair(const char* key, const String& value) {
+  return "\"" + String(key) + "\":\"" + value + "\"";
+}
+
+void notifyJson(const String& payload) {
+  Serial.println("[BLE] " + payload);
+  if (eventCharacteristic != nullptr && isClientConnected) {
+    eventCharacteristic->setValue(payload.c_str());
+    eventCharacteristic->notify();
+  }
+}
+
+void setMotor(uint8_t rtp) {
+  if (hapticReady) {
+    haptic.setRealtimeValue(rtp);
+  }
+  digitalWrite(kUserLedPin, rtp > 0 ? LOW : HIGH);
+}
+
+void stopFeedback() {
+  breathEnabled = false;
+  calibrationRunning = false;
+  setMotor(0);
+}
+
+String buildStatusJson(const char* eventType) {
+  String payload = "{";
+  payload += jsonPair("event_type", eventType) + ",";
+  payload += jsonPair("device_id", kDeviceName) + ",";
+  payload += "\"press_count\":";
+  payload += String(pressCount);
+  payload += ",\"breath_enabled\":";
+  payload += breathEnabled ? "true" : "false";
+  payload += ",\"calibration_running\":";
+  payload += calibrationRunning ? "true" : "false";
+  payload += ",\"haptic_ready\":";
+  payload += hapticReady ? "true" : "false";
+  payload += ",\"device_timestamp\":";
+  payload += String(millis());
+  payload += "}";
+  return payload;
+}
+
+void emitStatus(const char* eventType) {
+  notifyJson(buildStatusJson(eventType));
+}
+
+void handleCommand(const String& command) {
+  if (command.indexOf("breath_start") >= 0) {
+    calibrationRunning = false;
+    breathEnabled = true;
+    breathStep = 0;
+    lastBreathStepAtMs = 0;
+    emitStatus("breath_started");
+    return;
+  }
+
+  if (command.indexOf("breath_stop") >= 0) {
+    stopFeedback();
+    emitStatus("breath_stopped");
+    return;
+  }
+
+  if (command.indexOf("calibrate_start") >= 0) {
+    breathEnabled = false;
+    calibrationRunning = true;
+    calibrationStartedAtMs = millis();
+    emitStatus("calibration_started");
+    return;
+  }
+
+  emitStatus("unknown_command");
+}
+
+class CommandCallbacks final : public BLECharacteristicCallbacks {
+ public:
+  void onWrite(BLECharacteristic* characteristic) override {
+    String command = characteristic->getValue().c_str();
+    command.trim();
+    Serial.println("[CMD] " + command);
+    handleCommand(command);
+  }
+};
 
 class LinkServerCallbacks final : public BLEServerCallbacks {
-public:
-  void onConnect(BLEServer *server) override {
+ public:
+  void onConnect(BLEServer*) override {
     isClientConnected = true;
     Serial.println("[BLE] client connected");
     digitalWrite(kUserLedPin, LOW);
   }
 
-  void onDisconnect(BLEServer *server) override {
+  void onDisconnect(BLEServer*) override {
     isClientConnected = false;
+    stopFeedback();
     Serial.println("[BLE] client disconnected, restart advertising");
-    digitalWrite(kUserLedPin, HIGH);
     BLEDevice::startAdvertising();
   }
 };
 
-String buildDeviceInfoJson() {
-  String payload = "{";
-  payload += "\"device_id\":\"" + String(kDeviceName) + "\",";
-  payload += "\"firmware\":\"xiao_esp32s3plus_ble_button_link\",";
-  payload += "\"button_pin\":" + String(kButtonPin);
-  payload += "}";
-  return payload;
-}
+void setupHaptic() {
+  Wire.begin();
+  hapticReady = haptic.begin(&Wire);
+  if (!hapticReady) {
+    Serial.println("[HAPTIC] DRV2605L not found, using LED fallback");
+    return;
+  }
 
-String buildButtonEventJson() {
-  String payload = "{";
-  payload += "\"event_type\":\"button_press\",";
-  payload += "\"device_id\":\"" + String(kDeviceName) + "\",";
-  payload += "\"press_count\":" + String(pressCount) + ",";
-  payload += "\"device_timestamp\":" + String(millis());
-  payload += "}";
-  return payload;
+  haptic.useLRA();
+  haptic.selectLibrary(6);
+  haptic.setMode(DRV2605_MODE_REALTIME);
+  haptic.setRealtimeValue(0);
+  Serial.println("[HAPTIC] ready");
 }
 
 void setupBle() {
   BLEDevice::init(kDeviceName);
-  BLEServer *server = BLEDevice::createServer();
+  BLEServer* server = BLEDevice::createServer();
   server->setCallbacks(new LinkServerCallbacks());
 
-  BLEService *service = server->createService("19B10010-E8F2-537E-4F6C-D104768A1214");
+  BLEService* service = server->createService(kServiceUuid);
+  eventCharacteristic = service->createCharacteristic(kEventUuid, BLECharacteristic::PROPERTY_NOTIFY);
+  eventCharacteristic->addDescriptor(new BLE2902());
 
-  eventCharacteristic = service->createCharacteristic(
-      "19B10011-E8F2-537E-4F6C-D104768A1214",
-      BLECharacteristic::PROPERTY_NOTIFY);
-    eventCharacteristic->addDescriptor(new BLE2902());
+  service->createCharacteristic(kInfoUuid, BLECharacteristic::PROPERTY_READ)
+      ->setValue(buildStatusJson("device_info").c_str());
 
-  infoCharacteristic = service->createCharacteristic(
-      "19B10012-E8F2-537E-4F6C-D104768A1214",
-      BLECharacteristic::PROPERTY_READ);
+  commandCharacteristic = service->createCharacteristic(kCommandUuid, BLECharacteristic::PROPERTY_WRITE);
+  commandCharacteristic->setCallbacks(new CommandCallbacks());
 
-  infoCharacteristic->setValue(buildDeviceInfoJson().c_str());
   service->start();
-
-  BLEAdvertising *advertising = BLEDevice::getAdvertising();
+  BLEAdvertising* advertising = BLEDevice::getAdvertising();
   advertising->addServiceUUID(service->getUUID());
   advertising->setScanResponse(true);
-  advertising->setMinPreferred(0x06);
-  advertising->setMinPreferred(0x12);
   BLEDevice::startAdvertising();
   Serial.println("[BLE] advertising started");
 }
 
-void emitButtonEvent() {
-  ++pressCount;
-  String payload = buildButtonEventJson();
-  Serial.println("[BUTTON] " + payload);
+void updateBreathFeedback(uint32_t now) {
+  if (!breathEnabled || now - lastBreathStepAtMs < kBreathStepMs) {
+    return;
+  }
 
-  if (eventCharacteristic != nullptr && isClientConnected) {
-    eventCharacteristic->setValue(payload.c_str());
-    eventCharacteristic->notify();
-    Serial.println("[BLE] notify sent");
-  } else {
-    Serial.println("[BLE] notify skipped, no connected client");
+  lastBreathStepAtMs = now;
+  const uint8_t phase = breathStep++ % 40;
+  const uint8_t rtp = phase < 20 ? phase * 4 : (39 - phase) * 4;
+  setMotor(rtp);
+}
+
+void updateCalibration(uint32_t now) {
+  if (!calibrationRunning) {
+    return;
+  }
+
+  setMotor((now / 250) % 2 == 0 ? 0x35 : 0x00);
+  if (now - calibrationStartedAtMs >= kCalibrationMs) {
+    stopFeedback();
+    emitStatus("calibration_done");
   }
 }
-} // namespace
+
+void emitButtonEvent() {
+  ++pressCount;
+  emitStatus("button_press");
+}
+}  // namespace
 
 void setup() {
   Serial.begin(115200);
-  delay(1200);
-
+  delay(800);
   pinMode(kButtonPin, INPUT_PULLUP);
   pinMode(kUserLedPin, OUTPUT);
   digitalWrite(kUserLedPin, HIGH);
 
-  Serial.println("[BOOT] xiao_esp32s3plus_ble_button_link starting");
-  Serial.println("[BOOT] GPIO0 boot button is used as temporary test input");
+  Serial.println("[BOOT] HOLD BLE link starting");
+  setupHaptic();
   setupBle();
 }
 
@@ -136,6 +232,14 @@ void loop() {
     if (lastStableButtonState == LOW) {
       emitButtonEvent();
     }
+  }
+
+  updateBreathFeedback(now);
+  updateCalibration(now);
+
+  if (isClientConnected && now - lastTelemetryAtMs > kTelemetryMs) {
+    lastTelemetryAtMs = now;
+    emitStatus("telemetry");
   }
 
   if (!isClientConnected && now - lastAdvertiseLogAtMs > 5000) {

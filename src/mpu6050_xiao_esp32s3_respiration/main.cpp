@@ -1,16 +1,14 @@
 /*
  * 创建时间: 2026-06-08
- * 文件主要职责: 在 XIAO ESP32S3 / Plus + MPU6050/MPU6500 上实现“引导式个体化校准 + 个人参数运行”的单 IMU 呼吸实验入口。
+ * 文件主要职责: 在 XIAO ESP32S3 / Plus + MPU6050 上实现“引导式个体化校准 + 个人参数运行”的单 IMU 呼吸实验入口。
  * 核心函数输入输出:
  * - setup(): 初始化串口、I2C 和 MPU6050，打印接线说明，并进入引导式校准流程。
  * - loop(): 固定采样读取 IMU；校准阶段按提示学习个人基线与叹气特征，运行阶段输出呼吸周期、吸气/呼气时间和叹气计数。
- * 最后更改时间: 2026-08-01
+ * 最后更改时间: 2026-06-09
  * 累加式更改日志:
  * - 2026-06-08: 新建单 IMU 呼吸实验入口。
  * - 2026-06-08: 由固定阈值实验切换到“引导式个体化校准 + 轻量学习”第一版实现。
  * - 2026-06-09: 新增运行阶段 VOFA 调试输出，便于观察原始载波、基线与判定量曲线。
- * - 2026-07-01: 同步兼容 MPU6500/MPU9250 系列 WHO_AM_I，避免新 IMU 模块在呼吸环境中被误判为失联。
- * - 2026-08-01: 增加当前 PCB 呼吸 VOFA 构建开关，上电默认使能 TPS_EN/M_EN，并关闭 HEAT_CTRL。
  * 注意事项:
  * - 当前版本不做复杂模型训练，而是根据校准阶段统计个人参数。
  * - 第一版默认每次上电重新校准，暂不写入 Flash 持久化。
@@ -27,12 +25,12 @@
 namespace {
 
 constexpr uint32_t kSerialBaudRate = 115200;
-constexpr unsigned long kPcbPowerEnableSettleMs = 80;
 constexpr uint8_t kMpu6050AddressLow = 0x68;
 constexpr uint8_t kMpu6050AddressHigh = 0x69;
 constexpr uint8_t kRegisterWhoAmI = 0x75;
 constexpr uint8_t kRegisterPowerManagement1 = 0x6B;
 constexpr uint8_t kRegisterAccelXoutH = 0x3B;
+constexpr uint8_t kExpectedWhoAmI = 0x68;
 
 constexpr unsigned long kStartupDelayMs = 300;
 constexpr unsigned long kSampleIntervalMs = 20;
@@ -67,12 +65,6 @@ constexpr float kBreathBaselineAlpha = 0.003f;
 constexpr float kBreathSmoothAlpha = 0.18f;
 constexpr float kBreathDetectionLowPassAlpha = 0.12f;
 constexpr float kFallbackAmplitudeThresholdG = 0.0045f;
-
-#if defined(HOLD_PCB_RESPIRATION_VOFA)
-constexpr uint8_t kSensorPowerEnablePin = 43;  // D6, TPS_EN
-constexpr uint8_t kHapticEnablePin = 44;       // D7, M_EN
-constexpr uint8_t kHeaterControlPin = 2;       // D1, HEAT_CTRL, forced off
-#endif
 
 struct Mpu6050Sample {
   int16_t accelX = 0;
@@ -286,19 +278,10 @@ struct PersonalProfile {
   float acceptanceLockRatio = kAcceptanceLockRatio;
 };
 
-struct ImuIdentity {
-  uint8_t whoAmI;
-  const char* modelName;
-  float temperatureScale;
-  float temperatureOffset;
-};
-
 struct RuntimeState {
   bool sensorReady = false;
   bool runtimeLogPaused = true;
   uint8_t activeAddress = 0;
-  uint8_t activeWhoAmI = 0;
-  const char* activeModelName = "UNKNOWN";
   unsigned long startedAtMs = 0;
   unsigned long lastSampleAtMs = 0;
   unsigned long lastReconnectAtMs = 0;
@@ -371,13 +354,6 @@ struct RuntimeState {
 };
 
 RuntimeState runtimeState;
-
-constexpr ImuIdentity kSupportedImuIdentities[] = {
-  {0x68, "MPU6050/MPU6000", 340.0f, 36.53f},
-  {0x70, "MPU6500", 333.87f, 21.0f},
-  {0x71, "MPU9250/MPU9255-family", 333.87f, 21.0f},
-  {0x73, "MPU9255", 333.87f, 21.0f},
-};
 
 float squaref(float value) {
   return value * value;
@@ -458,23 +434,8 @@ float axisValue(const Vector3f& value, uint8_t axisIndex) {
   }
 }
 
-const ImuIdentity* identifyImu(uint8_t whoAmI) {
-  for (const ImuIdentity& identity : kSupportedImuIdentities) {
-    if (identity.whoAmI == whoAmI) {
-      return &identity;
-    }
-  }
-
-  return nullptr;
-}
-
 float convertTemperatureCelsius(int16_t rawTemperature) {
-  const ImuIdentity* identity = identifyImu(runtimeState.activeWhoAmI);
-  if (identity == nullptr) {
-    return static_cast<float>(rawTemperature) / 340.0f + 36.53f;
-  }
-
-  return static_cast<float>(rawTemperature) / identity->temperatureScale + identity->temperatureOffset;
+  return static_cast<float>(rawTemperature) / 340.0f + 36.53f;
 }
 
 float convertAccelToG(int16_t rawAcceleration) {
@@ -617,34 +578,13 @@ unsigned long computeAcceptanceLockMs() {
 }
 
 void logWiringGuide() {
-#if defined(HOLD_PCB_RESPIRATION_VOFA)
-  Serial.println("[wiring] PCB TPS_EN D6(GPIO43) -> HIGH, sensor rail enabled");
-  Serial.println("[wiring] PCB M_EN D7(GPIO44) -> HIGH, haptic rail enabled but not driven here");
-  Serial.println("[wiring] PCB HEAT_CTRL D1(GPIO2) -> LOW, heater forced off");
-  Serial.println("[wiring] PCB I2C D4(GPIO5/SDA) / D5(GPIO6/SCL) -> MPU6050/MPU6500");
-  Serial.println("[wiring] IMU address expected at 0x68, 0x69 is only probed as fallback");
-#else
   Serial.println("[wiring] XIAO 3V3 -> MPU6050 VCC");
   Serial.println("[wiring] XIAO GND -> MPU6050 GND");
   Serial.println("[wiring] XIAO D4(GPIO5/SDA) -> MPU6050 SDA");
   Serial.println("[wiring] XIAO D5(GPIO6/SCL) -> MPU6050 SCL");
   Serial.println("[wiring] MPU6050 AD0/ADC -> GND (默认地址 0x68)");
   Serial.println("[wiring] MPU6050 INT/XDA/XCL 本阶段先不接");
-#endif
 }
-
-#if defined(HOLD_PCB_RESPIRATION_VOFA)
-void setupPcbPowerPins() {
-  pinMode(kSensorPowerEnablePin, OUTPUT);
-  pinMode(kHapticEnablePin, OUTPUT);
-  pinMode(kHeaterControlPin, OUTPUT);
-
-  digitalWrite(kSensorPowerEnablePin, HIGH);
-  digitalWrite(kHapticEnablePin, HIGH);
-  digitalWrite(kHeaterControlPin, LOW);
-  delay(kPcbPowerEnableSettleMs);
-}
-#endif
 
 bool probeAddress(uint8_t address) {
   Wire.beginTransmission(address);
@@ -770,13 +710,10 @@ bool tryInitializeAt(uint8_t address) {
   }
 
   Serial.printf("[mpu6050-cal] addr=0x%02X | WHO_AM_I=0x%02X\n", address, whoAmI);
-  const ImuIdentity* identity = identifyImu(whoAmI);
-  if (identity == nullptr) {
+  if (whoAmI != kExpectedWhoAmI) {
     Serial.println("[mpu6050-cal] unexpected WHO_AM_I, continue probing other address");
     return false;
   }
-
-  Serial.printf("[mpu6050-cal] identified model=%s\n", identity->modelName);
 
   if (!writeRegister(address, kRegisterPowerManagement1, 0x00)) {
     Serial.println("[mpu6050-cal] wake-up write failed");
@@ -785,25 +722,18 @@ bool tryInitializeAt(uint8_t address) {
 
   delay(100);
   runtimeState.activeAddress = address;
-  runtimeState.activeWhoAmI = whoAmI;
-  runtimeState.activeModelName = identity->modelName;
   runtimeState.sensorReady = true;
   runtimeState.startedAtMs = millis();
   runtimeState.gravityEstimateG = Vector3f(0.0f, 0.0f, 1.0f);
   resetRuntimeDetectorState();
   resetCalibrationState(runtimeState.startedAtMs);
-  Serial.printf(
-      "[mpu6050-cal] init ok | active_addr=0x%02X | model=%s\n",
-      runtimeState.activeAddress,
-      runtimeState.activeModelName);
+  Serial.printf("[mpu6050-cal] init ok | active_addr=0x%02X\n", runtimeState.activeAddress);
   return true;
 }
 
 void tryInitializeSensor() {
   runtimeState.sensorReady = false;
   runtimeState.activeAddress = 0;
-  runtimeState.activeWhoAmI = 0;
-  runtimeState.activeModelName = "UNKNOWN";
 
   if (tryInitializeAt(kMpu6050AddressLow)) {
     return;
@@ -1493,23 +1423,13 @@ void updateMotionAndSignal(unsigned long nowMs, const Mpu6050Sample& sample) {
 }  // namespace
 
 void setup() {
-#if defined(HOLD_PCB_RESPIRATION_VOFA)
-  setupPcbPowerPins();
-#endif
-
   Serial.begin(kSerialBaudRate);
   delay(kStartupDelayMs);
 
-#if defined(HOLD_PCB_RESPIRATION_VOFA)
-  Serial.println();
-  Serial.println("[system] PCB respiration VOFA stream starting on XIAO ESP32S3 / Plus");
-  Serial.println("[system] Algorithm and 23-column VOFA runtime frame follow the original MPU6050 respiration test");
-#else
   Serial.println();
   Serial.println("[system] Single-IMU personalized calibration experiment starting on XIAO ESP32S3 / Plus");
   Serial.println("[system] Flow: still baseline -> guided normal breath -> guided deep breath -> guided sigh -> runtime");
   Serial.println("[system] Goal: learn personal thresholds instead of continuing to hard-tune global constants");
-#endif
   logWiringGuide();
 
   Wire.begin(project_config::kI2cSdaPin, project_config::kI2cSclPin);

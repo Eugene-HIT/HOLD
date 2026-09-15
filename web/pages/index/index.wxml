@@ -1,0 +1,57 @@
+<view class="page">
+  <view class="hero">
+    <view class="hero-tag">DEBUG</view>
+    <view class="hero-title">BLE 调试联调台</view>
+    <view class="hero-subtitle">保留扫描、连接、订阅能力，并把最新呼吸曲线、心率曲线、bpm、状态文本和错误信息集中在一个页面里看。</view>
+  </view>
+
+  <view class="panel status-panel">
+    <view class="panel-title">链路状态</view>
+    <view class="status-row"><text class="label">适配器</text><text class="value">{{adapterStatus}}</text></view>
+    <view class="status-row"><text class="label">连接</text><text class="value">{{connectionStatus}}</text></view>
+    <view class="status-row"><text class="label">设备</text><text class="value">{{deviceName}}</text></view>
+    <view class="status-row"><text class="label">最近包类型</text><text class="value">{{packetType}} {{packetSource}}</text></view>
+    <view class="status-row"><text class="label">当前引导</text><text class="value">{{breathRunning ? '呼吸引导启动中' : '未启动'}}</text></view>
+  </view>
+
+  <view class="actions">
+    <button class="primary" bindtap="handleScanAndConnect" loading="{{scanning}}">扫描并连接</button>
+    <button class="secondary" bindtap="disconnectDevice">断开连接</button>
+    <button class="secondary" bindtap="clearDebugWindow">清空调试窗口</button>
+    <button class="primary" bindtap="toggleBreath" disabled="{{!canSendCommand}}">
+      {{breathRunning ? '停止呼吸反馈' : '开始呼吸反馈'}}
+    </button>
+    <button class="secondary wide" bindtap="startCalibration" disabled="{{!canSendCommand || calibrationRunning}}">
+      {{calibrationRunning ? '基础校准中...' : '基础校准'}}
+    </button>
+  </view>
+
+  <view class="panel">
+    <view class="panel-title">实时指标</view>
+    <view class="metric-grid">
+      <view class="metric-card"><text class="metric-value">{{respirationBpm === '' ? '--' : respirationBpm}}</text><text class="metric-label">呼吸 bpm</text></view>
+      <view class="metric-card"><text class="metric-value">{{heartRateBpm === '' ? '--' : heartRateBpm}}</text><text class="metric-label">心率 bpm</text></view>
+      <view class="metric-card"><text class="metric-value">{{motion || '--'}}</text><text class="metric-label">motion</text></view>
+      <view class="metric-card"><text class="metric-value">{{pressureLevel === '' ? '--' : pressureLevel}}</text><text class="metric-label">pressure level</text></view>
+      <view class="metric-card"><text class="metric-value small">{{ppgIr === '' ? '--' : ppgIr}}</text><text class="metric-label">PPG IR</text></view>
+      <view class="metric-card"><text class="metric-value small">{{dataState}}</text><text class="metric-label">数据状态</text></view>
+    </view>
+  </view>
+
+  <view class="panel">
+    <view class="panel-title">最近硬件通知</view>
+    <view class="status-row"><text class="label">时间</text><text class="value">{{lastEventTime}}</text></view>
+    <view class="status-row"><text class="label">温度 / beat</text><text class="value">{{bodyTempC === '' ? '--' : bodyTempC}} / {{beatCount}}</text></view>
+    <view class="status-row"><text class="label">红光 / 阶段</text><text class="value">{{ppgRed === '' ? '--' : ppgRed}} / {{phaseAxis || '--'}}</text></view>
+    <view class="status-row"><text class="label">haptic</text><text class="value">{{hapticReady ? 'OK' : '--'}}</text></view>
+    <view class="raw-block">{{lastEventRaw}}</view>
+    <view class="raw-block subdued">{{lastEventHex}}</view>
+  </view>
+
+  <view class="panel">
+    <view class="panel-title">云端处理结果</view>
+    <view class="status-row"><text class="label">云函数</text><text class="value">{{cloudStatus}}</text></view>
+    <view class="status-row"><text class="label">云存储</text><text class="value">{{storagePath}}</text></view>
+    <view class="status-row"><text class="label">模型回复</text><text class="value multiline">{{llmReply}}</text></view>
+  </view>
+</view>

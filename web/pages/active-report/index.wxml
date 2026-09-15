@@ -1,61 +1,42 @@
-<view class="report-page">
+<view class="report-page" wx:if="{{report}}">
   <view class="report-hero">
-    <view class="report-tag">{{viewReport.resultTag}}</view>
-    <view class="report-title">{{viewReport.title}}</view>
-    <view class="app-muted">{{viewReport.startedAt}}{{viewReport.durationLabel ? ' · ' + viewReport.durationLabel : ''}}</view>
+    <view class="report-tag">{{report.resultTag}}</view>
+    <view class="report-title">{{report.title}}</view>
+    <view class="report-subtitle">{{report.startedAt}} · {{report.durationLabel}}</view>
   </view>
 
-  <view class="app-card">
-    <view class="app-section-title section-gap">指部 PPG 曲线</view>
-    <view class="app-muted chart-caption">{{chartStatusText}}</view>
-    <canvas canvas-id="chestPpgCanvas" class="wave-canvas" style="width: {{chartWidth}}px; height: {{chartHeight}}px;" width="{{chartWidth}}" height="{{chartHeight}}"></canvas>
-  </view>
-
-  <view class="app-card">
-    <view class="app-section-title section-gap">关键参数</view>
+  <view class="report-panel metrics-panel">
+    <view class="panel-title">关键参数</view>
     <view class="metrics-row">
-      <block wx:for="{{viewReport.metrics}}" wx:for-item="metric" wx:key="label">
+      <block wx:for="{{report.metrics}}" wx:key="label">
         <view class="report-metric">
-          <view class="report-metric-value">{{metric.value}}{{metric.unit}}</view>
-          <view class="app-metric-label">{{metric.label}}</view>
+          <view class="report-metric-value">{{item.value}}{{item.unit}}</view>
+          <view class="report-metric-label">{{item.label}}</view>
         </view>
       </block>
     </view>
   </view>
 
-  <view class="app-card">
-    <view class="app-section-title section-gap">报告摘要</view>
-    <view class="app-body">{{viewReport.summary}}</view>
+  <view class="report-panel">
+    <view class="panel-title">波形摘要占位</view>
+    <view class="wave-grid">
+      <block wx:for="{{report.waveformMoments}}" wx:key="label">
+        <view class="wave-col">
+          <view class="wave-bar-shell">
+            <view class="wave-bar" style="height: {{item.value}}rpx"></view>
+          </view>
+          <view class="wave-label">{{item.label}}</view>
+        </view>
+      </block>
+    </view>
   </view>
 
-  <view class="app-card">
-    <view class="app-section-title section-gap">分析与建议</view>
-    <view class="app-body">{{viewReport.briefAnalysis}}</view>
-    <view class="app-body second-line">{{viewReport.briefAdvice}}</view>
-  </view>
-
-  <view class="app-card">
-    <view class="app-section-title section-gap">智能分析</view>
-    <view class="app-body" wx:if="{{canGenerateReport}}">把这次已完整缓存的 1 分钟检测数据发送给模型，生成针对本次检测的文字分析。</view>
-    <view class="app-body" wx:elif="{{hasStoredReport}}">这次检测已归档，但数据尚未完整，暂时只能查看曲线与参数。</view>
-    <view class="app-body" wx:else>还没有可分析的检测记录，完成一次 60 秒检测后即可生成。</view>
-
-    <button class="app-button app-button--primary report-button" bindtap="generateReport" loading="{{reportStatus === 'running'}}">
-      {{reportStatus === 'running' ? '生成中' : '生成本次分析'}}
-    </button>
-
-    <view class="app-muted report-feedback" wx:if="{{reportFeedback}}">{{reportFeedback}}</view>
-    <view class="app-muted" wx:if="{{viewReport.generatedReportUpdatedAt}}">生成于 {{viewReport.generatedReportUpdatedAt}}</view>
-    <view class="report-error" wx:if="{{viewReport.generatedReportError}}">生成失败：{{viewReport.generatedReportError}}</view>
-    <view class="app-body report-text" wx:if="{{viewReport.generatedReportText}}">{{viewReport.generatedReportText}}</view>
-  </view>
-
-  <view class="app-card" wx:if="{{viewReport.reportSections && viewReport.reportSections.length}}">
-    <view class="app-section-title section-gap">详细板块</view>
-    <block wx:for="{{viewReport.reportSections}}" wx:for-item="section" wx:key="heading">
+  <view class="report-panel">
+    <view class="panel-title">报告内容</view>
+    <block wx:for="{{report.reportSections}}" wx:key="heading">
       <view class="section-block">
-        <view class="section-heading">{{section.heading}}</view>
-        <view class="app-body">{{section.body}}</view>
+        <view class="section-heading">{{item.heading}}</view>
+        <view class="section-text">{{item.text}}</view>
       </view>
     </block>
   </view>

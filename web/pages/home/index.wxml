@@ -1,170 +1,106 @@
 <view class="home-page">
-  <view class="home-topbar">
-    <view>
-      <view class="brand">HOLD</view>
-      <view class="app-muted brand-sub">呼吸与心率监测</view>
-    </view>
-    <view class="debug-entry" bindtap="openDebugPage">调试</view>
-  </view>
+  <view class="home-hero">
+    <view class="hero-title">用户主页</view>
+    <view class="hero-subtitle">连接、校准和关键引导信息都收敛在首页显眼位置，调试页只做诊断查看。</view>
 
-  <view class="app-card device-card">
-    <view class="device-row">
-      <view class="app-dot {{isConnected ? 'app-dot--live' : (connecting ? 'app-dot--busy' : 'app-dot--off')}}"></view>
-      <view class="device-text">
-        <view class="device-name">{{connectionText}}</view>
-        <view class="app-muted">{{connectionHint}}</view>
-      </view>
-      <button class="connect-btn" wx:if="{{!isConnected}}" bindtap="connectDevice" loading="{{connecting}}">{{connecting ? '搜索中' : '连接'}}</button>
-    </view>
-  </view>
-
-
-
-  <view class="app-card">
-    <view class="app-card-head">
-      <view class="app-section-title">实时</view>
-      <text class="app-muted" wx:if="{{liveUpdatedAt}}">{{liveUpdatedAt}}</text>
+    <view class="hero-actions">
+      <button class="solid-button" bindtap="handleScanAndConnect" loading="{{scanning}}">扫描并连接</button>
+      <button class="ghost-button" bindtap="disconnectDevice" disabled="{{!connected}}">断开连接</button>
     </view>
 
-    <view class="live-grid">
-      <view class="live-item">
-        <view class="live-value">{{respBpm}}<text class="live-unit">次/分</text></view>
-        <view class="app-metric-label">呼吸</view>
-      </view>
-      <view class="live-divider"></view>
-      <view class="live-item">
-        <view class="live-value">{{heartBpm}}<text class="live-unit">bpm</text></view>
-        <view class="app-metric-label">心率</view>
-      </view>
+    <view class="hero-actions">
+      <button class="soft-button" bindtap="clearDebugCache">清除缓存</button>
+      <button class="accent-button" bindtap="toggleBreathGuide" disabled="{{!canSendCommand}}">
+        {{breathRunning ? '停止引导' : '开启引导'}}
+      </button>
     </view>
 
-    <view class="wave-wrap">
-      <view class="wave-block">
-        <view class="wave-label">
-          <view class="wave-dot wave-dot--resp"></view>
-          <text class="app-muted">呼吸波形</text>
-        </view>
-        <canvas canvas-id="homeRespCanvas" class="home-wave" style="width: {{chartWidth}}px; height: {{chartHeight}}px;" width="{{chartWidth}}" height="{{chartHeight}}"></canvas>
+    <view class="status-grid">
+      <view class="hero-chip">
+        <text class="chip-label">设备</text>
+        <text class="chip-value">{{deviceName}}</text>
       </view>
-      <view class="wave-block">
-        <view class="wave-label">
-          <view class="wave-dot wave-dot--heart"></view>
-          <text class="app-muted">心率波形 · 胸口 PPG</text>
-        </view>
-        <canvas canvas-id="homeHeartCanvas" class="home-wave" style="width: {{chartWidth}}px; height: {{chartHeight}}px;" width="{{chartWidth}}" height="{{chartHeight}}"></canvas>
+      <view class="hero-chip">
+        <text class="chip-label">适配器</text>
+        <text class="chip-value">{{adapterStatus}}</text>
+      </view>
+      <view class="hero-chip">
+        <text class="chip-label">连接</text>
+        <text class="chip-value">{{connectionStatus}}</text>
       </view>
     </view>
   </view>
 
-  <view class="app-card guide-card" wx:if="{{hasGuide}}">
-    <view class="app-eyebrow">请跟随提示</view>
-    <view class="guide-text">{{guideText}}</view>
-    <view class="app-muted" wx:if="{{guideMeta}}">{{guideMeta}}</view>
-  </view>
-
-  <view class="app-card action-card">
-    <view class="app-section-title">呼吸引导</view>
-    <view class="app-body">跟随设备提示完成一次呼吸训练，全程约 1 分钟。过程中请保持身体放松、匀速呼吸。</view>
-    <button class="app-button app-button--primary action-button" bindtap="startBreathGuide" loading="{{breathGuideRunning}}">
-      {{breathGuideRunning ? '引导进行中' : '开始呼吸引导'}}
+  <view class="module-card guidance-card">
+    <view class="module-tag warm">校准与引导</view>
+    <view class="module-title">{{guideTitle}}</view>
+    <view class="guide-copy">{{guideText}}</view>
+    <view class="guide-hint">{{primaryHint}}</view>
+    <view class="mode-panel">
+      <text class="mode-label">引导模式</text>
+      <picker mode="selector" range="{{breathModeOptions}}" bindchange="onBreathModeChange" disabled="{{breathRunning}}">
+        <view class="mode-picker">{{breathModeText}}</view>
+      </picker>
+      <text class="mode-status">{{breathRemainingText}}</text>
+    </view>
+    <button class="solid-button wide" bindtap="startCalibration" disabled="{{!canSendCommand || calibrationRunning}}">
+      {{calibrationRunning ? '校准中...' : '开始基础校准'}}
     </button>
-    <view class="app-muted action-hint" wx:if="{{!isConnected}}">需先连接设备后开始。</view>
   </view>
 
-  <view class="app-card">
-    <view class="app-card-head">
-      <view class="app-section-title">指部 PPG 主动检测</view>
-      <text class="app-card-head__link" wx:if="{{!activeTestRunning && hasLatestReport}}" bindtap="openLatestReport">查看报告</text>
+  <view class="module-card">
+    <view class="module-header">
+      <view>
+        <view class="module-tag">实时指标</view>
+        <view class="module-title">当前设备上报</view>
+      </view>
+      <view class="module-action" bindtap="openDebugPage">调试页</view>
     </view>
 
-    <block wx:if="{{activeTestRunning}}">
-      <view class="progress-row">
-        <view class="progress-track">
-          <view class="progress-fill" style="width: {{activeTestPercent}}%"></view>
-        </view>
-        <view class="app-muted progress-text">{{activeTestElapsed}} / {{activeTestTarget}} 秒</view>
+    <view class="analysis-grid">
+      <view class="analysis-stat breathing">
+        <text class="analysis-number">{{respirationBpm === '' ? '--' : respirationBpm}}</text>
+        <text class="analysis-unit">次/分</text>
+        <text class="analysis-label">呼吸 bpm</text>
       </view>
-
-      <view class="active-live">
-        <view class="active-live-item">
-          <view class="active-live-value">{{activeTestHeart}}<text class="live-unit">bpm</text></view>
-          <view class="app-metric-label">实时心率</view>
-        </view>
-        <view class="active-live-item">
-          <view class="active-live-value">{{activeTestBeats}}</view>
-          <view class="app-metric-label">已检出 beat</view>
-        </view>
+      <view class="analysis-stat heartbeat">
+        <text class="analysis-number">{{heartRateBpm === '' ? '--' : heartRateBpm}}</text>
+        <text class="analysis-unit">bpm</text>
+        <text class="analysis-label">心率 bpm</text>
       </view>
-
-      <view class="app-muted">请保持手指贴合传感器、身体尽量静止，检测结束后会自动生成报告。</view>
-    </block>
-
-    <block wx:else>
-      <view class="app-body">60 秒指部 PPG 检测，测量平均心率、搏动节律与心率变异，完成后自动生成报告。</view>
-      <button class="app-button app-button--primary action-button" bindtap="startActiveTest" loading="{{activeTestStarting}}">开始 60 秒检测</button>
-      <view class="app-muted action-hint" wx:if="{{!isConnected}}">需先连接设备后开始。</view>
-
-      <block wx:if="{{hasLatestReport}}">
-        <view class="section-divider"></view>
-        <view class="report-head">
-          <view class="report-tag">{{latestReport.resultTag}}</view>
-          <view class="app-muted">{{latestReport.startedAt}}{{latestReport.durationLabel ? ' · ' + latestReport.durationLabel : ''}}</view>
-        </view>
-        <view class="report-line">
-          <text class="report-key">平均心率</text>
-          <text class="report-val">{{latestReport.heartRate}}</text>
-        </view>
-        <view class="app-body" wx:if="{{latestReport.summary}}">{{latestReport.summary}}</view>
-      </block>
-      <view class="app-empty" wx:else>还没有检测记录。</view>
-    </block>
+      <view class="analysis-stat stability">
+        <text class="analysis-number">{{pressureRaw === '' ? '--' : pressureRaw}}</text>
+        <text class="analysis-label">压力 raw</text>
+      </view>
+      <view class="analysis-stat neutral">
+        <text class="analysis-number small">{{ppgIr === '' ? '--' : ppgIr}}</text>
+        <text class="analysis-label">PPG IR</text>
+      </view>
+      <view class="analysis-stat neutral">
+        <text class="analysis-number small">{{bodyTempC === '' ? '--' : bodyTempC}}</text>
+        <text class="analysis-label">体表温度 / ℃</text>
+      </view>
+      <view class="analysis-stat neutral">
+        <text class="analysis-number">{{debugLogCount}}</text>
+        <text class="analysis-label">收到包数</text>
+      </view>
+    </view>
   </view>
 
-  <view class="app-card">
-    <view class="app-card-head">
-      <view class="app-section-title">状态识别</view>
-      <text class="app-muted" wx:if="{{emotionUpdatedAt}}">{{emotionUpdatedAt}}</text>
-    </view>
-
-    <view wx:if="{{emotionStatus === 'idle'}}" class="app-empty">完成一次 60 秒检测后自动识别。</view>
-
-    <view wx:elif="{{emotionStatus === 'loading'}}" class="emotion-state">
-      <view class="app-body">正在上传波形并识别…</view>
-    </view>
-
-    <view wx:elif="{{emotionStatus === 'error'}}" class="emotion-state">
-      <view class="app-body">{{emotionError}}</view>
-      <view class="emotion-retry" bindtap="retryEmotionPredict">重新识别</view>
-    </view>
-
-    <block wx:else>
-      <view class="emotion-head">
-        <view class="emotion-label emotion-label--{{emotionLabelId}}">{{emotionLabel}}</view>
-        <view class="emotion-sub">
-          <text class="app-muted">置信度 </text>
-          <text class="emotion-confidence">{{emotionConfidence}}</text>
-        </view>
-      </view>
-
-      <view class="emotion-bars">
-        <view class="emotion-bar" wx:for="{{emotionBars}}" wx:key="name">
-          <text class="emotion-bar__name">{{item.name}}</text>
-          <view class="emotion-bar__track">
-            <view class="emotion-bar__fill emotion-bar__fill--{{index}}" style="width: {{item.width}}%;"></view>
-          </view>
-          <text class="emotion-bar__value">{{item.percent}}</text>
-        </view>
-      </view>
-
-      <view class="emotion-segments" wx:if="{{emotionSegments.length > 1}}">
-        <text class="app-muted">分段结果</text>
-        <view class="emotion-segment" wx:for="{{emotionSegments}}" wx:key="index">
-          <text class="app-muted">第 {{item.index + 1}} 段</text>
-          <text class="emotion-segment__label">{{item.label}}</text>
-        </view>
-      </view>
-
-      <view class="app-muted emotion-meta" wx:if="{{emotionMeta}}">{{emotionMeta}}</view>
-    </block>
+  <view class="module-card">
+    <view class="module-tag">诊断快照</view>
+    <view class="status-row"><text class="label">数据状态</text><text class="value">{{dataState}}</text></view>
+    <view class="status-row"><text class="label">信号质量</text><text class="value">{{signalQuality}}</text></view>
+    <view class="status-row"><text class="label">佩戴 / 接触</text><text class="value">{{wearState}} / {{contactState}}</text></view>
+    <view class="status-row"><text class="label">云端闭环</text><text class="value">{{cloudStatus}}</text></view>
+    <view class="status-row"><text class="label">最近更新</text><text class="value">{{lastUpdateText}}</text></view>
+    <view class="status-row"><text class="label">最近包类型</text><text class="value">{{packetType}} {{packetSource}}</text></view>
+    <view class="status-row"><text class="label">震动驱动</text><text class="value">{{hapticReady ? 'DRV2605L 就绪' : '未确认'}}</text></view>
+    <view class="status-row"><text class="label">压力原始值</text><text class="value">{{pressureRaw === '' ? '--' : pressureRaw}} / Δ{{pressureDelta === '' ? '--' : pressureDelta}}</text></view>
+    <view class="status-row"><text class="label">PPG 红光</text><text class="value">{{ppgRed === '' ? '--' : ppgRed}}</text></view>
+    <view class="status-row"><text class="label">阶段 / 传感器</text><text class="value">{{phaseAxis || '--'}}</text></view>
+    <view class="status-row"><text class="label">motion / beat</text><text class="value">{{motion || '--'}} / {{beatCount}}</text></view>
+    <view class="raw-block">{{lastRaw}}</view>
+    <view class="raw-block subdued">{{lastHex}}</view>
   </view>
 </view>
